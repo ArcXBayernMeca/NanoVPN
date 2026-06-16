@@ -129,12 +129,19 @@ arc-canteen login
 arc-canteen context sync          # → ~/.arc-canteen/context/ (great for AI context)
 eval "$(arc-canteen shell-init)"  # exposes $RPC
 
-# 2. Accept Circle CLI terms + log in + create/fund a wallet
+# 2. Circle CLI — accept terms, then log in to the TESTNET session
 circle terms accept
-circle wallet login               # email OTP
-circle wallet create --blockchain arc-testnet   # (verify exact flag via `circle wallet create --help`)
-circle wallet fund                # testnet faucet
-circle gateway deposit            # move USDC into the Gateway balance
+# IMPORTANT: mainnet (default) and testnet have SEPARATE auth sessions. A plain
+# `circle wallet login <email>` logs you into MAINNET only. We work on Arc TESTNET,
+# so you must pass --testnet. `circle wallet status` shows both sessions.
+circle wallet login <your-email> --testnet   # email OTP (code form "B1X-123456")
+#   First login auto-provisions an agent SCA wallet on every supported chain
+#   (incl. ARC-TESTNET, chain id 5042002) — NO `circle wallet create` needed.
+circle wallet list --chain ARC-TESTNET --testnet     # find your Arc testnet wallet address
+circle wallet fund --testnet                         # testnet faucet
+circle gateway deposit --testnet                     # USDC -> Gateway nanopayment balance
+circle wallet balance --address <addr> --chain ARC-TESTNET --testnet
+# Confirm exact per-command flags with `circle <resource> <verb> --help`.
 
 # 3. Get testnet USDC
 #    https://faucet.circle.com
