@@ -29,6 +29,7 @@ Thumbs.db
 # Local tool state
 .arc-canteen/
 .vercel/
+.superpowers/
 
 # Test / coverage
 coverage/
