@@ -27,23 +27,28 @@ async function onSettled(sessionId: string, amountMicroUsd: number, settlementUu
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url ?? "", SELF);
-  if (url.pathname === "/health") { res.writeHead(200).end("ok"); return; }
-  if (url.pathname === "/register" && req.method === "POST") {
-    const body = await readJson(req);
-    registry.register(body); // { id, token, nodeId, pricePerGbUsd, budgetMicroUsd }
-    res.writeHead(201, { "Content-Type": "application/json" }).end(JSON.stringify({ ok: true }));
-    return;
+  try {
+    const url = new URL(req.url ?? "", SELF);
+    if (url.pathname === "/health") { res.writeHead(200).end("ok"); return; }
+    if (url.pathname === "/register" && req.method === "POST") {
+      const body = await readJson(req);
+      registry.register(body); // { id, token, nodeId, pricePerGbUsd, budgetMicroUsd }
+      res.writeHead(201, { "Content-Type": "application/json" }).end(JSON.stringify({ ok: true }));
+      return;
+    }
+    if (url.pathname.startsWith("/usage/")) { streamUsage(res, registry, url.pathname.split("/")[2]); return; }
+    if (url.pathname === "/settle") { await handleSettle(req, res, { registry, facilitator, sellerAddress: SELLER_ADDRESS, onSettled }); return; }
+    res.writeHead(404).end("not found");
+  } catch (err) {
+    const code = err instanceof SyntaxError ? 400 : 500;
+    if (!res.headersSent) res.writeHead(code, { "Content-Type": "application/json" }).end(JSON.stringify({ error: String(err) }));
   }
-  if (url.pathname.startsWith("/usage/")) { streamUsage(res, registry, url.pathname.split("/")[2]); return; }
-  if (url.pathname === "/settle") { await handleSettle(req, res, { registry, facilitator, sellerAddress: SELLER_ADDRESS, onSettled }); return; }
-  res.writeHead(404).end("not found");
 });
 
 server.on("connect", (req, socket, head) => handleConnect(req, socket as any, head, registry));
 
 function readJson(req: http.IncomingMessage): Promise<any> {
-  return new Promise((resolve) => { let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => resolve(JSON.parse(b || "{}"))); });
+  return new Promise((resolve, reject) => { let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => { try { resolve(JSON.parse(b || "{}")); } catch { reject(new SyntaxError("bad json")); } }); req.on("error", reject); });
 }
 
 startSettlementLoop(registry, buyer, `${SELF}/settle`);
