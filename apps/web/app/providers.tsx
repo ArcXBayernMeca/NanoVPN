@@ -1,0 +1,14 @@
+"use client";
+import { WagmiProvider } from "wagmi";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { config } from "@/lib/wagmi";
+import { Toaster } from "sonner";
+import type { ReactNode } from "react";
+const qc = new QueryClient();
+export function Providers({ children }: { children: ReactNode }) {
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={qc}>{children}<Toaster /></QueryClientProvider>
+    </WagmiProvider>
+  );
+}
