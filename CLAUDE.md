@@ -23,7 +23,7 @@ An **AI "buyer brain"** sits on the buyer side: for humans it's a co-pilot that
 auto-selects the best node and manages the budget; for agents it *is* the client. This
 is what earns the hackathon's **30% "Agentic Sophistication"** score.
 
-## Current status (as of 2026-06-16)
+## Current status (as of 2026-06-17)
 
 **Phase: brainstorming / design.** No application code yet. Decisions made so far are
 recorded as ADRs. Several design areas are still open (see below).
@@ -31,9 +31,16 @@ recorded as ADRs. Several design areas are still open (see below).
 - ✅ Core framing locked → [ADR-0001](docs/04-decisions/ADR-0001-core-framing.md)
 - ✅ Egress realism locked (real proxy, 2–3 geo nodes, real USDC) → [ADR-0002](docs/04-decisions/ADR-0002-egress-realism.md)
 - ✅ Settlement model locked (streaming balance + x402) → [ADR-0003](docs/04-decisions/ADR-0003-settlement-model.md)
-- ⏳ **Open:** UI/map design, buyer-brain agent design, Circle wallet model, node
-  registry/marketplace data model, proxy tech choice, pricing granularity. See
-  "Open questions" in [the design spec](docs/specs/2026-06-16-nanovpn-design.md).
+- ✅ Wallet model locked (humans: connected EOA or modular/passkey; agents: Agent Stack Agent Wallet) → [ADR-0004](docs/04-decisions/ADR-0004-wallet-model.md)
+- ✅ Agent self-onboarding + auto-funding locked (hosted doc + Circle programmatic faucet) → [ADR-0005](docs/04-decisions/ADR-0005-agent-onboarding.md)
+- ✅ Node registry locked (off-chain two-tier + light reputation; ERC-8004 on-chain as Layer 3 stretch) → [ADR-0006](docs/04-decisions/ADR-0006-node-registry.md)
+- ✅ Pricing locked (per-node differentiated rates; $0.01-or-~10s settlement) → [ADR-0007](docs/04-decisions/ADR-0007-pricing.md)
+- ✅ Proxy tech locked (HTTP CONNECT + byte metering, Node/TS, Fly.io 3 regions) → [ADR-0008](docs/04-decisions/ADR-0008-proxy-tech.md)
+- ✅ Data store locked (Supabase) → [ADR-0009](docs/04-decisions/ADR-0009-data-store.md)
+- ✅ Human sign-in locked (pure-wallet SIWE/passkey; email login → v2) → [ADR-0010](docs/04-decisions/ADR-0010-auth.md)
+- ✅ UI/brand + buyer-brain design locked (in the design spec)
+- ✅ **All design open questions CLOSED** (2026-06-17). Next: human reviews the finalized
+  [design spec](docs/specs/2026-06-16-nanovpn-design.md), then `superpowers:writing-plans`.
 
 **Do not start implementation** until the design spec is complete and the human has
 approved it. We are following the `superpowers:brainstorming` → `writing-plans` flow.

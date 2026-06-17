@@ -26,6 +26,13 @@ Pay-per-use VPN / metered egress, settled as USDC nanopayments on Arc. Built for
 | [0001](04-decisions/ADR-0001-core-framing.md) | Hybrid framing: human VPN + agent x402 egress + A2A marketplace (one core, two doors) | Accepted |
 | [0002](04-decisions/ADR-0002-egress-realism.md) | Real HTTP/SOCKS proxy on 2–3 geo nodes; real USDC on Arc testnet | Accepted |
 | [0003](04-decisions/ADR-0003-settlement-model.md) | Prepaid streaming USDC balance + batched nanopayments; x402 per-request for agents | Accepted |
+| [0004](04-decisions/ADR-0004-wallet-model.md) | Wallets: humans use connected EOA **or** Circle modular/passkey; agents use Circle Agent Stack "Agent Wallet" | Accepted |
+| [0005](04-decisions/ADR-0005-agent-onboarding.md) | Agent self-onboarding via hosted `agent-onboarding.md` + automated Circle faucet funding | Accepted |
+| [0006](04-decisions/ADR-0006-node-registry.md) | Node registry: off-chain two-tier MVP + light reputation; ERC-8004 on-chain registry as Layer 3 stretch | Accepted |
+| [0007](04-decisions/ADR-0007-pricing.md) | Pricing: per-node differentiated rates; settle on $0.01-or-~10s threshold | Accepted |
+| [0008](04-decisions/ADR-0008-proxy-tech.md) | Egress node: HTTP CONNECT proxy + byte metering, Node/TS, Fly.io (3 regions) | Accepted |
+| [0009](04-decisions/ADR-0009-data-store.md) | Data store: Supabase (Postgres + auth + realtime) | Accepted |
+| [0010](04-decisions/ADR-0010-auth.md) | Human sign-in: pure-wallet (SIWE / passkey); email login deferred to v2 | Accepted |
 
 ## Build layering (scope guardrails)
 

@@ -1,15 +1,10 @@
 # NanoVPN — Design Spec (living document)
 
 - **Date started:** 2026-06-16
-- **Status:** 🚧 **In progress** — brainstorming not yet complete. Core decisions locked;
-  several areas still open (see [Open questions](#open-questions)). Do not begin
-  implementation until this spec is complete and approved.
-- **⏸ Paused 2026-06-16 — RESUME HERE:** visual track done (layout/counter/brand); buyer-brain
-  engine+surfaces decided and its detailed design (§5.1) **proposed, awaiting confirmation**.
-  Next: confirm §5.1, then wallet & onboarding → registry → pricing → proxy tech → data store.
-- **Related:** [ADR-0001](../04-decisions/ADR-0001-core-framing.md) ·
-  [ADR-0002](../04-decisions/ADR-0002-egress-realism.md) ·
-  [ADR-0003](../04-decisions/ADR-0003-settlement-model.md) ·
+- **Status:** ✅ **Design APPROVED by Martin (2026-06-17)** — all open questions resolved and
+  recorded as ADRs (0001–0010). Next: `superpowers:writing-plans`. Do not begin
+  implementation until the implementation plan is written and approved.
+- **Related:** [Decision log — ADR-0001..0010](../README.md#decision-log) ·
   [Architecture](../02-architecture.md)
 
 ## 1. Summary
@@ -42,7 +37,14 @@ two front doors (human map app + agent x402 endpoint), a shared node registry, a
 | Egress realism | Real HTTP/SOCKS proxy on 2–3 geo nodes; real USDC on Arc testnet | 0002 |
 | Settlement | Prepaid streaming balance + batched nanopayments (human); x402 per-request (agent) | 0003 |
 | UI / brand | Map-first (NordVPN-style) layout · right-rail counter = live ticker + arcscan settlement log · brand **NanoVPN**, USDC-green, "Pay only for the data you use." | — (visual brainstorm) |
-| Buyer-brain | One decision engine, two surfaces (human co-pilot + autonomous agent client); Claude plans/explains, deterministic guardrails enforce. Detailed design §5.1 **proposed — pending confirmation**. | — |
+| Buyer-brain | One decision engine, two surfaces (human co-pilot + autonomous agent client); Claude plans/explains, deterministic guardrails enforce. Detailed design in §5.1. | §5.1 |
+| Wallet model | Humans: connected EOA (MetaMask/Privy/Rainbow) **and** Circle modular/passkey wallet — both supported, one shown in demo. Agents: **Circle Agent Stack "Agent Wallet"** (agent-native developer-controlled EOA with built-in spend caps + allow/blocklists). | §5.2 |
+| Agent onboarding | Self-onboarding via a hosted `agent-onboarding.md` (+ `llms.txt`): a short prompt points an agent at the doc; it self-provisions an Agent Wallet, **auto-funds from Circle's programmatic faucet**, then calls our x402 egress endpoint. | §5.2 |
+| Node registry | Hybrid (C) built to migrate on-chain: off-chain two-tier model (static listing + dynamic telemetry) + **light off-chain reputation** for MVP; **ERC-8004** Identity+Reputation registries on Arc as the Layer 3 on-chain target. | §5.3 / ADR-0006 |
+| Pricing | Per-node differentiated rates: humans ~$1.5–3/GB by node, agents flat sub-cent/request; settle on $0.01-or-~10s, whichever first. Exact numbers are a tuning knob. | ADR-0007 |
+| Proxy tech | HTTP CONNECT forward proxy + byte-count metering, in **Node/TS**, on **Fly.io** (Tokyo/Frankfurt/NYC). Datacenter (not residential) IPs — soften "residential" claims. | ADR-0008 |
+| Data store | **Supabase** (Postgres + auth + realtime); matches reference repo. Live counter streams via SSE/WS from the node; DB persists settlements + usage summaries. | ADR-0009 |
+| Human sign-in | **Pure-wallet** (mirrors the wallet paths): "Connect wallet" (SIWE) or "Continue with passkey"; user keyed by wallet address in Supabase. Optional email/social login deferred to **v2**. | ADR-0010 |
 | Team / timeline | 2–3 people; ~13 days; Layer 1 MVP guaranteed, Layer 2 targeted, Layer 3 stretch | — |
 
 ## 5. Architecture
@@ -50,10 +52,10 @@ two front doors (human map app + agent x402 endpoint), a shared node registry, a
 See [02-architecture.md](../02-architecture.md). Components: Egress Node, Settlement
 Service, Node Registry/Marketplace, Buyer-Brain, Web App, Wallet Layer, x402 endpoint.
 
-### 5.1 Buyer-brain design (PROPOSED — awaiting confirmation)
+### 5.1 Buyer-brain design (ACCEPTED 2026-06-17)
 
-> Decision locked: **one decision engine, two surfaces.** The detailed design below was
-> proposed on 2026-06-16 and is awaiting Martin's confirmation before it's "locked".
+> Decision locked: **one decision engine, two surfaces**, with the detailed design below.
+> (Proposed 2026-06-16; **accepted by Martin 2026-06-17**.)
 
 - **Shared engine.** Given `{ node-registry snapshot, balance/budget, goal or preferences,
   live session metrics }` it decides: **select node → (switch / pause / resume) → stop**,
@@ -76,6 +78,58 @@ Service, Node Registry/Marketplace, Buyer-Brain, Web App, Wallet Layer, x402 end
   dev, mirroring the reference repo. Exact model/params pinned at planning time (consult the
   `claude-api` skill then).
 
+### 5.2 Agent self-onboarding (DECIDED — path to take)
+
+The agent door is **agent-native onboarding**: an agent joins by reading one doc, not by a
+human wiring it up. This is itself a core Agentic-Sophistication demo artifact — a judge
+watches an agent read one URL and then self-provision, self-fund, and make its first paid
+request with zero human plumbing.
+
+- **Entry prompt (copy-paste):** e.g. *"You're onboarding to NanoVPN for geo-located
+  egress. Read https://nanovpn.app/agent-onboarding.md and follow it. Budget: $0.50."*
+- **Hosted onboarding doc:** `agent-onboarding.md`, mirrored as `llms.txt` (agents already
+  look for this). It walks the agent through: prerequisites → install/auth Circle CLI →
+  create a Circle **Agent Wallet** → **auto-fund it** → discover/inspect our egress
+  endpoint → worked first x402 request → budget/guardrail guidance → "you're live."
+- **Funding = automated, via Circle's own programmatic faucet** (no captcha, no human):
+  `circle wallet fund --address <addr> --chain ARC-TESTNET` (CLI) or `POST /v1/faucet/drips`
+  (API), then `circle gateway deposit` into the Gateway balance. The agent's Circle API
+  credentials + wallet provisioning are **pre-protocol** (the developer does that once), but
+  every step *after* having credentials is automatable end-to-end.
+  - **Fallback (Level 1):** if an agent has no Circle CLI, the doc documents the manual
+    Circle web faucet path (`faucet.circle.com`).
+  - **Optional (own drip):** we *can* run a small NanoVPN treasury drip endpoint, but
+    Circle's faucet likely makes it unnecessary — keep as backup only.
+- **Discovery tie-in (stretch):** list our egress endpoint in Circle's **Agent Marketplace**
+  so agents `circle services search` → find NanoVPN → `circle services pay`.
+- **Note on Proceeds (myproceeds.xyz):** a paywall layer unifying x402 + MPP + Circle
+  Nanopayments (supports Arc). It is **seller-side monetization, not an auto-funder** — a
+  possible *alternative way to expose our egress endpoint*, not part of the funding path.
+- **Verify at planning:** Circle testnet faucet rate limits; that `circle wallet fund` /
+  `POST /v1/faucet/drips` work for Arc-Testnet under the demo's API key.
+
+### 5.3 Node registry & reputation (DECIDED — ADR-0006)
+
+The directory both buyer-brains shop. The physical node is always off-chain; its **listing**
+and **reputation** can move on-chain. Hedge: build off-chain now, target on-chain via a
+standard.
+
+- **Two-tier data model** (so the static tier migrates on-chain unchanged):
+  - **Static listing** → later ERC-8004 Identity: `nodeId`, `operatorAddress`,
+    `geo{country,city,lat,long}`, `endpoint`, `pricePerGB`, `pricePerRequest`, (stretch) `stake`.
+  - **Dynamic telemetry** (always off-chain): `latency`, `health/uptime`,
+    `currentLoad/capacity`, `lastSeen`.
+  - **Reputation** = node-as-provider trust (uptime, network quality, advertised-vs-actual,
+    honest metering re: the ADR-0003 trust window). **MVP: light off-chain** signal
+    (rolling uptime% / success-rate); the buyer-brain scores **price × latency × health ×
+    light-rep**.
+- **Layer 3 stretch — on-chain via ERC-8004** (Trustless Agents, an A2A extension): deploy
+  Identity + Reputation registries on Arc; nodes get an on-chain identity, the buyer-brain
+  posts feedback after each session, the next one reads it before choosing. The on-chain
+  target **is ERC-8004**, not a bespoke contract. Validation Registry out of scope.
+- **Verify at planning:** ERC-8004 reference contracts deploy on Arc testnet (it launched on
+  Ethereum mainnet, a separate L1); reference implementations to fork.
+
 ## 6. Build layers
 
 - **Layer 1 (MVP):** 1 real metered node + human map UI + real streaming USDC + live
@@ -94,19 +148,34 @@ Service, Node Registry/Marketplace, Buyer-Brain, Web App, Wallet Layer, x402 end
    rail). Counter = **live ticker + on-chain settlement log** ($ increments + spend
    sparkline + arcscan-linked batch settlements). Open sub-item: map library
    (react-simple-maps / MapLibre / globe.gl).
-3. 🟡 **Buyer-brain** — DECIDED: one engine, two surfaces (co-pilot + autonomous agent);
+3. ✅ **Buyer-brain** — DECIDED: one engine, two surfaces (co-pilot + autonomous agent);
    Claude plans + explains, deterministic guardrails enforce; tool set defined (§5.1);
-   mock mode without API key. **Detailed design §5.1 PROPOSED — awaiting confirmation.**
-   Sub-open: exact Claude model + params (pin at planning).
-4. **Circle wallet model** — modular/passkey (gasless, smooth human onboarding) vs
-   user-controlled vs developer-controlled; what agents/nodes use.
-5. **Node registry** — off-chain DB vs on-chain registry; data model; reputation.
-6. **Proxy tech** — HTTP CONNECT vs SOCKS5; metering implementation; language (Go/Node);
-   hosting/regions.
-7. **Pricing** — $/GB rate; settlement threshold (unsettled-exposure cap); agent
-   per-request pricing tiers.
-8. **Data store** — Neon Postgres (Vercel Marketplace) vs Supabase (matches reference).
-9. **Auth/onboarding** — how humans sign in and get a funded balance with minimal friction.
+   mock mode without API key. Detailed design in §5.1. Sub-item (pin at planning): exact
+   Claude model + params.
+4. ✅ **Circle wallet model** — DECIDED. Humans: connected EOA **and** modular/passkey
+   (both supported; one shown in demo). Agents: **Circle Agent Stack "Agent Wallet"**
+   (agent-native developer-controlled EOA; its built-in spend caps + allow/blocklists map
+   directly onto the buyer-brain guardrails). Sub-open: **verify modular/passkey wallets
+   support Arc** (Gateway supports Arc testnet, but the modular-wallet chain list may not
+   include Arc) — the passkey path may need to operate via the Gateway unified balance.
+5. ✅ **Node registry** — DECIDED (ADR-0006, §5.3). Hybrid: off-chain two-tier model
+   (static listing + dynamic telemetry) + light off-chain reputation for MVP; **ERC-8004**
+   Identity+Reputation on Arc as the Layer 3 on-chain stretch. Sub-open: verify ERC-8004
+   deploys on Arc testnet.
+6. ✅ **Proxy tech** — DECIDED (ADR-0008). HTTP CONNECT forward proxy + byte-count metering,
+   **Node/TS**, on **Fly.io** (Tokyo/Frankfurt/NYC). Go reconsidered only if a component
+   needs it during build. Caveat: datacenter (not residential) IPs — soften "residential"
+   claims.
+7. ✅ **Pricing** — DECIDED (ADR-0007). Per-node differentiated rates (humans ~$1.5–3/GB by
+   node; agents flat sub-cent/request); settle on **$0.01-or-~10s, whichever first**. Exact
+   numbers are a tuning knob; what's locked is per-node differentiation + the settlement
+   approach.
+8. ✅ **Data store** — DECIDED (ADR-0009): **Supabase** (Postgres + auth + realtime; matches
+   reference repo). Live counter streams via SSE/WS from the node; DB persists settlements +
+   usage summaries.
+9. ✅ **Auth/onboarding** — DECIDED. *Agent side:* self-onboarding doc (§5.2, ADR-0005).
+   *Human side (ADR-0010):* **pure-wallet** sign-in — "Connect wallet" (SIWE) or "Continue
+   with passkey"; user keyed by wallet address. Optional email/social login deferred to v2.
 
 ## 8. Risks
 
@@ -119,14 +188,12 @@ Service, Node Registry/Marketplace, Buyer-Brain, Web App, Wallet Layer, x402 end
 
 ## 9. Next steps
 
-**⏸ Paused 2026-06-16 (resume here).** Visual track done. Buyer-brain engine+surfaces
-decided; detailed design (§5.1) proposed and **awaiting confirmation**.
+**✅ Design APPROVED by Martin (2026-06-17).** All open questions resolved (ADR-0001..0010).
 
-1. Confirm the buyer-brain design (§5.1).
-2. Resolve the remaining open questions in this order: **wallet & onboarding → node
-   registry → pricing → proxy tech → data store**.
-3. Finalize this spec; get human approval.
-4. Invoke `superpowers:writing-plans` to produce the implementation plan.
+1. ✅ Spec approved by Martin (2026-06-17).
+2. Invoke `superpowers:writing-plans` to produce the implementation plan.
+3. Alongside planning (deferred until the protocol design was done — now done): draft the
+   `agent-onboarding.md` contents (ADR-0005).
 
 ### Setup state (done 2026-06-16)
 - Both CLIs installed & authenticated on **testnet** (`circle`, `arc-canteen`).
