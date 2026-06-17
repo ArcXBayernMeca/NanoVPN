@@ -17,8 +17,10 @@ export function handleConnect(req: IncomingMessage, clientSocket: Duplex, head: 
     clientSocket.end();
     return;
   }
-  const [host, portStr] = (req.url ?? "").split(":");
-  const port = Number(portStr) || 443;
+  const target = req.url ?? "";
+  const idx = target.lastIndexOf(":");
+  const host = target.slice(0, idx).replace(/^\[|\]$/g, "");
+  const port = Number(target.slice(idx + 1)) || 443;
 
   const upstream = net.connect(port, host, () => {
     clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
@@ -34,6 +36,6 @@ export function handleConnect(req: IncomingMessage, clientSocket: Duplex, head: 
   const close = () => { upstream.destroy(); clientSocket.destroy(); };
   clientSocket.on("error", close);
   upstream.on("error", close);
-  clientSocket.on("close", () => upstream.end());
-  upstream.on("close", () => clientSocket.end());
+  clientSocket.on("close", () => { if (!upstream.destroyed) upstream.end(); });
+  upstream.on("close", () => { if (!clientSocket.destroyed) clientSocket.end(); });
 }
