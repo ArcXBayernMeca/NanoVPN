@@ -1,7 +1,7 @@
 "use client";
 import { useAccount, useConnect, useSignMessage } from "wagmi";
 import { injected } from "wagmi/connectors";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { buildSiweMessage } from "@/lib/siwe";
 
 export function ConnectBar({ onSignedIn }: { onSignedIn: (address: string) => void }) {
@@ -9,6 +9,10 @@ export function ConnectBar({ onSignedIn }: { onSignedIn: (address: string) => vo
   const { connect } = useConnect();
   const { signMessageAsync } = useSignMessage();
   const [busy, setBusy] = useState(false);
+  // Wallet state only exists client-side; render a stable placeholder until mounted
+  // so the server and first client render match (avoids the hydration mismatch).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   async function signIn() {
     setBusy(true);
@@ -24,6 +28,7 @@ export function ConnectBar({ onSignedIn }: { onSignedIn: (address: string) => vo
     } finally { setBusy(false); }
   }
 
+  if (!mounted) return <button disabled>Connect wallet</button>;
   if (!isConnected) return <button onClick={() => connect({ connector: injected() })}>Connect wallet</button>;
   return <button disabled={busy} onClick={signIn}>{busy ? "Signing…" : `Sign in (${address?.slice(0, 6)}…)`}</button>;
 }
