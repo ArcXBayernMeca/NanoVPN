@@ -9,6 +9,7 @@ export function ConnectBar({ onSignedIn }: { onSignedIn: (address: string) => vo
   const { connect } = useConnect();
   const { signMessageAsync } = useSignMessage();
   const [busy, setBusy] = useState(false);
+  const [signed, setSigned] = useState(false);
   // Wallet state only exists client-side; render a stable placeholder until mounted
   // so the server and first client render match (avoids the hydration mismatch).
   const [mounted, setMounted] = useState(false);
@@ -24,11 +25,14 @@ export function ConnectBar({ onSignedIn }: { onSignedIn: (address: string) => vo
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message, signature }),
       });
       const data = (await res.json()) as { address?: string };
-      if (data.address) onSignedIn(data.address);
+      if (data.address) { setSigned(true); onSignedIn(data.address); }
     } finally { setBusy(false); }
   }
 
-  if (!mounted) return <button disabled>Connect wallet</button>;
-  if (!isConnected) return <button onClick={() => connect({ connector: injected() })}>Connect wallet</button>;
-  return <button disabled={busy} onClick={signIn}>{busy ? "Signing…" : `Sign in (${address?.slice(0, 6)}…)`}</button>;
+  const short = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "";
+
+  if (!mounted) return <button className="btn btn--ghost" disabled>Connect wallet</button>;
+  if (!isConnected) return <button className="btn btn--primary" onClick={() => connect({ connector: injected() })}>Connect wallet</button>;
+  if (signed) return <div className="wallet-chip"><span className="live" /> Signed in · <b>{short}</b></div>;
+  return <button className="btn btn--primary" disabled={busy} onClick={signIn}>{busy ? "Signing…" : `Sign in as ${short}`}</button>;
 }

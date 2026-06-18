@@ -8,18 +8,37 @@ export function WorldMap({ nodes, selectedId, onSelect }: {
   nodes: NodeListing[]; selectedId: string | null; onSelect: (id: string) => void;
 }) {
   return (
-    <ComposableMap projectionConfig={{ scale: 150 }} style={{ width: "100%", height: "auto" }}>
+    <ComposableMap projectionConfig={{ scale: 156 }} style={{ width: "100%", height: "auto" }}>
       <Geographies geography={GEO_URL}>
         {({ geographies }: { geographies: any[] }) => geographies.map((geo: any) => (
-          <Geography key={geo.rsmKey} geography={geo} fill="#1b2a2a" stroke="#0e1a1a" />
+          <Geography
+            key={geo.rsmKey}
+            geography={geo}
+            fill="#16241d"
+            stroke="#0b1410"
+            strokeWidth={0.4}
+            style={{ default: { outline: "none" }, hover: { fill: "#1d3027", outline: "none" }, pressed: { outline: "none" } }}
+          />
         ))}
       </Geographies>
-      {nodes.map((n) => (
-        <Marker key={n.id} coordinates={[n.geo.lng, n.geo.lat]} onClick={() => onSelect(n.id)}>
-          <circle r={7} fill={selectedId === n.id ? "#2ecc71" : "#7bed9f"} stroke="#0b3" style={{ cursor: "pointer" }} />
-          <text textAnchor="middle" y={-12} fontSize={10} fill="#dff">{n.geo.city} · ${n.pricePerGbUsd}/GB</text>
-        </Marker>
-      ))}
+      {nodes.map((n) => {
+        const active = selectedId === n.id;
+        return (
+          <Marker key={n.id} coordinates={[n.geo.lng, n.geo.lat]} onClick={() => onSelect(n.id)}>
+            {active && <circle r={15} fill="#0fa968" opacity={0.16} />}
+            <circle
+              r={active ? 8 : 6}
+              fill={active ? "#0fa968" : "#37b985"}
+              stroke="#ffffff"
+              strokeWidth={2}
+              style={{ cursor: "pointer", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }}
+            />
+            <text className="map-label" textAnchor="middle" y={-15}>
+              {n.geo.city} · ${n.pricePerGbUsd}/GB
+            </text>
+          </Marker>
+        );
+      })}
     </ComposableMap>
   );
 }

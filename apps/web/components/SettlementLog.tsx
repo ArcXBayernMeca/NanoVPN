@@ -23,16 +23,27 @@ export function SettlementLog({ sessionId }: { sessionId: string }) {
   }, [sessionId]);
 
   return (
-    <div style={{ border: "1px solid #234", borderRadius: 8, padding: 12 }}>
-      <strong>On-chain settlements</strong>
-      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-        {rows.map((r) => (
-          <li key={r.id} style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>{formatUsd(r.amount_micro_usd)} · {r.status}</span>
-            <a href={r.tx_hash ? `${ARC.explorer}/tx/${r.tx_hash}` : `${ARC.facilitator}/v1/x402/transfers/${r.settlement_uuid}`} target="_blank" rel="noreferrer">view</a>
-          </li>
-        ))}
-      </ul>
+    <div className="tape">
+      {rows.length === 0 ? (
+        <p className="tape__empty">Settlements post here as your balance streams out — roughly every $0.01 or 10 seconds.</p>
+      ) : (
+        <ul className="tape__list">
+          {rows.map((r) => (
+            <li className="tape__row" key={r.id}>
+              <span className="tape__amt">{formatUsd(r.amount_micro_usd)}</span>
+              <span className="tape__status">{r.status}</span>
+              <a
+                className="tape__view"
+                href={r.tx_hash ? `${ARC.explorer}/tx/${r.tx_hash}` : `${ARC.facilitator}/v1/x402/transfers/${r.settlement_uuid}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                view ↗
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
