@@ -51,15 +51,17 @@ create table public.usage_snapshots (
 alter table public.nodes enable row level security;
 alter table public.sessions enable row level security;
 alter table public.settlements enable row level security;
+alter table public.users enable row level security;
+alter table public.usage_snapshots enable row level security;
 create policy "public read nodes" on public.nodes for select using (true);
-create policy "public read sessions" on public.sessions for select using (true);
 create policy "public read settlements" on public.settlements for select using (true);
+-- sessions is NOT publicly readable: session_token is a bearer proxy credential.
+-- users / usage_snapshots have RLS on with no select policy → anon cannot read.
 -- writes happen via the service-role key (bypasses RLS); no insert policies needed.
 
 alter publication supabase_realtime add table public.settlements;
-alter publication supabase_realtime add table public.sessions;
 
 -- Seed one node for the MVP (update proxy_url/settle_url/operator after deploy + wallet gen).
 insert into public.nodes (id, operator_address, country, city, lat, lng, proxy_url, settle_url, price_per_gb_usd, price_per_request_usd)
 values ('tokyo-1', '0x0000000000000000000000000000000000000000', 'Japan', 'Tokyo', 35.6762, 139.6503,
-        'http://localhost:8888', 'http://localhost:8080/settle', 3.0, 0.001);
+        'http://localhost:8080', 'http://localhost:8080/settle', 3.0, 0.001);

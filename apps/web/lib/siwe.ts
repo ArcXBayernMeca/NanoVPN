@@ -21,11 +21,12 @@ export function buildSiweMessage(p: {
 export async function verifySiwe(
   message: string,
   signature: string,
-  expectedNonce: string
+  expectedNonce: string,
+  expectedDomain?: string
 ) {
   try {
     const siwe = new SiweMessage(message);
-    const { data } = await siwe.verify({ signature, nonce: expectedNonce });
+    const { data } = await siwe.verify({ signature, nonce: expectedNonce, domain: expectedDomain });
     return { success: true as const, address: data.address as string };
   } catch {
     return { success: false as const, address: undefined };

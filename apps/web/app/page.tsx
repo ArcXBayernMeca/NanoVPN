@@ -32,6 +32,11 @@ function App() {
         <h1 style={{ color: "#2ecc71" }}>NanoVPN</h1>
         <ConnectBar onSignedIn={() => {}} />
         <button disabled={!selected} onClick={connect}>Connect to {selected ?? "a node"}</button>
+        {session && (
+          <button onClick={() => { void fetch(`/api/browse?session=${session.sessionId}`); }}>
+            Browse (drive traffic)
+          </button>
+        )}
         {session && <Counter sessionId={session.sessionId} />}
         {session && <SettlementLog sessionId={session.sessionId} />}
       </aside>

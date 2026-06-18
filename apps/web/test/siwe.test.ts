@@ -32,4 +32,33 @@ describe("SIWE", () => {
     const result = await verifySiwe(message, signature, "DIFFERENT1");
     expect(result.success).toBe(false);
   });
+
+  it("verifies when expectedDomain matches the message domain", async () => {
+    const account = privateKeyToAccount(generatePrivateKey());
+    const nonce = "domnonce123";
+    const message = buildSiweMessage({
+      address: account.address,
+      nonce,
+      domain: "localhost:3000",
+      uri: "http://localhost:3000",
+    });
+    const signature = await account.signMessage({ message });
+    const result = await verifySiwe(message, signature, nonce, "localhost:3000");
+    expect(result.success).toBe(true);
+    expect(result.address?.toLowerCase()).toBe(account.address.toLowerCase());
+  });
+
+  it("rejects when expectedDomain is a different host", async () => {
+    const account = privateKeyToAccount(generatePrivateKey());
+    const nonce = "domnonce456";
+    const message = buildSiweMessage({
+      address: account.address,
+      nonce,
+      domain: "localhost:3000",
+      uri: "http://localhost:3000",
+    });
+    const signature = await account.signMessage({ message });
+    const result = await verifySiwe(message, signature, nonce, "evil.example.com");
+    expect(result.success).toBe(false);
+  });
 });

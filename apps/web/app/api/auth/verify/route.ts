@@ -7,7 +7,8 @@ export async function POST(req: NextRequest) {
     signature: string;
   };
   const nonce = req.cookies.get("siwe-nonce")?.value ?? "";
-  const result = await verifySiwe(message, signature, nonce);
+  const host = req.headers.get("host") ?? undefined;
+  const result = await verifySiwe(message, signature, nonce, host);
   if (!result.success) {
     return NextResponse.json({ error: "invalid signature" }, { status: 401 });
   }

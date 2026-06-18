@@ -6,6 +6,7 @@ export interface SessionEntry {
   nodeId: string;
   budgetMicroUsd: number;
   status: "active" | "stopped";
+  settling: boolean;
   meter: Meter;
 }
 
@@ -16,7 +17,7 @@ export class SessionRegistry {
   register(s: { id: string; token: string; nodeId: string; pricePerGbUsd: number; budgetMicroUsd: number }) {
     const entry: SessionEntry = {
       id: s.id, token: s.token, nodeId: s.nodeId, budgetMicroUsd: s.budgetMicroUsd,
-      status: "active", meter: new Meter(s.pricePerGbUsd),
+      status: "active", settling: false, meter: new Meter(s.pricePerGbUsd),
     };
     this.byToken.set(s.token, entry);
     this.byId.set(s.id, entry);

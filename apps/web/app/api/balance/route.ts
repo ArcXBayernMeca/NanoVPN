@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
     method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store",
     body: JSON.stringify({ token: "USDC", sources: [{ domain: ARC.domain, depositor }] }),
   });
+  if (!r.ok) return NextResponse.json({ error: "gateway error", status: r.status }, { status: 502 });
   const data = await r.json();
   const raw = data?.balances?.[0]?.balance ?? "0";
   const usdc = String(raw).includes(".") ? String(raw) : formatUnits(BigInt(raw), 6);

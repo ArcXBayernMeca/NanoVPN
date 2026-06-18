@@ -5,13 +5,17 @@ export interface BuyerClient { pay(url: string): Promise<unknown>; }
 export async function runSettlementTick(
   registry: SessionRegistry, buyer: BuyerClient, settleBaseUrl: string, now: number,
 ): Promise<string[]> {
-  const due = registry.list().filter((e) => e.status === "active" && e.meter.due(now));
+  const due = registry.list().filter((e) => e.status === "active" && !e.settling && e.meter.due(now));
   await Promise.all(
-    due.map((e) =>
-      buyer.pay(`${settleBaseUrl}?session=${e.id}`).catch((err) =>
-        console.error(`[settlement] session ${e.id} pay failed:`, (err as Error).message),
-      ),
-    ),
+    due.map((e) => {
+      e.settling = true;
+      return buyer
+        .pay(`${settleBaseUrl}?session=${e.id}`)
+        .catch((err) =>
+          console.error(`[settlement] session ${e.id} pay failed:`, (err as Error).message),
+        )
+        .finally(() => { e.settling = false; });
+    }),
   );
   return due.map((e) => e.id);
 }
