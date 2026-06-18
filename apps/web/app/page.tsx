@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Providers } from "./providers";
 import { WorldMap } from "@/components/WorldMap";
 import { ConnectBar } from "@/components/ConnectBar";
+import { Counter } from "@/components/Counter";
+import { SettlementLog } from "@/components/SettlementLog";
 import type { NodeListing } from "@nanovpn/core";
 
 function App() {
@@ -30,8 +32,8 @@ function App() {
         <h1 style={{ color: "#2ecc71" }}>NanoVPN</h1>
         <ConnectBar onSignedIn={() => {}} />
         <button disabled={!selected} onClick={connect}>Connect to {selected ?? "a node"}</button>
-        {/* Counter + SettlementLog added in Task 13 */}
-        {session && null /* Counter and SettlementLog rendered here once Task 13 is merged */}
+        {session && <Counter sessionId={session.sessionId} />}
+        {session && <SettlementLog sessionId={session.sessionId} />}
       </aside>
     </main>
   );
