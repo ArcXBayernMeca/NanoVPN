@@ -15,7 +15,10 @@ export function buildRequirements(amountMicroUsd: number, sellerAddress: string)
     asset: ARC.usdc,
     amount: amountMicroUsd.toString(), // atomic USDC == µUSD
     payTo: sellerAddress,
-    maxTimeoutSeconds: 345600,
+    // 30 days. Buyer signs validBefore = now + maxTimeoutSeconds. The reference repo /
+    // SDK default of 345600 (4 days) is REJECTED by the live Arc-testnet facilitator as
+    // `authorization_validity_too_short` (verified 2026-06-18: 4d fails, 30d settles).
+    maxTimeoutSeconds: 2592000,
     extra: { name: ARC.eip712.name, version: ARC.eip712.version, verifyingContract: ARC.gatewayWallet },
   };
 }

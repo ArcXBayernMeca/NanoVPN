@@ -28,4 +28,8 @@
 3. Query Supabase: confirm a row in `settlements` has a non-null `settlement_uuid`.
 4. Verify on-chain: `GET https://gateway-api-testnet.circle.com/v1/x402/transfers/<settlement_uuid>` — wait for `status` to reach `completed`.
 
-> Live settlement status: PENDING — run after funding the buyer wallet (see One-time setup).
+> Live settlement status: ✅ VERIFIED 2026-06-18 against Arc testnet — the settlement loop
+> pays via Circle Gateway and rows land in `settlements` (facilitator `status: received`,
+> e.g. `GET /v1/x402/transfers/<uuid>` shows buyer→seller `eip155:5042002`).
+> NOTE: this required setting `maxTimeoutSeconds = 2592000` (30 days) in `settle-endpoint.ts` —
+> the SDK / reference-repo default of `345600` (4 days) is rejected as `authorization_validity_too_short`.
