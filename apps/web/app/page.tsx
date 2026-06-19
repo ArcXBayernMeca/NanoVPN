@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import { WorldMap } from "@/components/WorldMap";
+import { GlobeMap } from "@/components/GlobeMap";
 import { ConnectBar } from "@/components/ConnectBar";
 import { Counter } from "@/components/Counter";
 import { SettlementLog } from "@/components/SettlementLog";
+import { useTrafficStream, type Intensity } from "@/lib/traffic";
 import type { NodeListing } from "@nanovpn/core";
 
 export default function Page() {
@@ -12,44 +13,45 @@ export default function Page() {
   const [signedIn, setSignedIn] = useState<string | null>(null);
   const [session, setSession] = useState<{ sessionId: string } | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [streaming, setStreaming] = useState(false);
+  const [intensity, setIntensity] = useState<Intensity>("medium");
 
   useEffect(() => {
     fetch("/api/nodes").then((r) => r.json()).then((d: NodeListing[]) => setNodes(d)).catch(() => {});
   }, []);
 
   const node = nodes.find((n) => n.id === selected) ?? null;
+  useTrafficStream(session?.sessionId ?? null, intensity, streaming);
 
   async function connect() {
     if (!selected || !signedIn) return;
     setConnecting(true);
     try {
       const res = await fetch("/api/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nodeId: selected, budgetUsd: 1 }),
       });
       const data = (await res.json()) as { sessionId?: string };
       if (data.sessionId) setSession({ sessionId: data.sessionId });
-    } finally {
-      setConnecting(false);
-    }
+    } finally { setConnecting(false); }
+  }
+
+  async function disconnect() {
+    if (!session) return;
+    setStreaming(false);
+    await fetch(`/api/session?id=${session.sessionId}`, { method: "DELETE" }).catch(() => {});
+    setSession(null);
   }
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand__mark">Nano<b>VPN</b></span>
-          <span className="brand__tag">metered egress, paid by the megabyte</span>
-        </div>
-        <span className="netpill"><span className="dot" /> Arc testnet</span>
-      </header>
-
       <div className="stage">
-        <div className="map-wrap">
-          <WorldMap
+        <div className="globe-wrap">
+          <GlobeMap
             nodes={nodes}
             selectedId={selected}
+            connected={!!session}
+            streaming={streaming ? intensity : null}
             onSelect={(id) => { if (!session) setSelected(id); }}
           />
         </div>
@@ -57,9 +59,7 @@ export default function Page() {
         <aside className="panel">
           <section className="panel__sec">
             <span className="eyebrow">Wallet</span>
-            <div style={{ marginTop: 10 }}>
-              <ConnectBar onSignedIn={(addr) => setSignedIn(addr)} />
-            </div>
+            <div style={{ marginTop: 10 }}><ConnectBar onSignedIn={(addr) => setSignedIn(addr)} /></div>
           </section>
 
           <section className="panel__sec">
@@ -74,15 +74,11 @@ export default function Page() {
                 <span className="node-card__rate">${node.pricePerGbUsd}/GB</span>
               </div>
             ) : (
-              <p className="hint">Pick a node on the map to route your traffic through it.</p>
+              <p className="hint">Spin the globe and pick a node to route your traffic through it.</p>
             )}
             {!session && (
               <div style={{ marginTop: 12 }}>
-                <button
-                  className="btn btn--primary"
-                  disabled={!selected || !signedIn || connecting}
-                  onClick={connect}
-                >
+                <button className="btn btn--primary" disabled={!selected || !signedIn || connecting} onClick={connect}>
                   {connecting ? "Connecting…" : node ? `Connect to ${node.geo.city}` : "Connect"}
                 </button>
                 {selected && !signedIn && <p className="hint">Sign in with your wallet to connect.</p>}
@@ -94,15 +90,22 @@ export default function Page() {
             <>
               <section className="panel__sec">
                 <Counter sessionId={session.sessionId} rate={node.pricePerGbUsd} />
-                <button
-                  className="btn btn--primary"
-                  style={{ marginTop: 16 }}
-                  onClick={() => { void fetch(`/api/browse?session=${session.sessionId}`); }}
-                >
-                  Send traffic
-                </button>
+                <div className="stream-controls">
+                  <button
+                    className={`btn ${streaming ? "btn--ghost" : "btn--primary"}`}
+                    onClick={() => setStreaming((s) => !s)}
+                  >
+                    {streaming ? "Stop traffic" : "Start traffic"}
+                  </button>
+                  <div className="seg" role="group" aria-label="intensity">
+                    {(["light", "medium", "heavy"] as Intensity[]).map((i) => (
+                      <button key={i} className="seg__btn" data-on={intensity === i} onClick={() => setIntensity(i)}>{i}</button>
+                    ))}
+                  </div>
+                </div>
+                <button className="btn btn--ghost" style={{ marginTop: 10 }} onClick={disconnect}>Disconnect</button>
                 <div className="statusline">
-                  <span className="live" /> Connected to <b>{node.geo.city}</b> · paying per byte
+                  <span className="live" /> Connected to <b>{node.geo.city}</b> · {streaming ? `streaming (${intensity})` : "idle"} · paying per byte
                 </div>
               </section>
 
