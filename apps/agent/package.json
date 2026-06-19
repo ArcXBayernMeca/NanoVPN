@@ -8,11 +8,16 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@nanovpn/core": "workspace:*",
+    "@anthropic-ai/sdk": "^0.105.0",
     "@circle-fin/x402-batching": "^2.0.4",
-    "@anthropic-ai/sdk": "^0.69.0",
+    "@nanovpn/core": "workspace:*",
     "@supabase/supabase-js": "^2.99.0",
     "viem": "^2.47.1"
   },
-  "devDependencies": { "tsx": "^4.21.0", "typescript": "^5.9.3", "vitest": "^2.1.0", "@types/node": "^20.0.0" }
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.0"
+  }
 }
