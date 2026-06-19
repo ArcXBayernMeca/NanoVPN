@@ -39,9 +39,9 @@ path plus an observable agent surface.
   app, documenting how an external agent would self-provision a wallet and fund it.
 
 **Non-goals (explicitly out of this slice):**
-- Multi-node selection across many real regions (we ship with the single seeded node;
-  the *reasoning* selects from whatever `listNodes` returns, so multi-node is data, not
-  code).
+- Multi-node selection across many *real* regions (we seed 2–3 node rows that all point at
+  the same proxy, so the agent's selection *reasoning* is visible; running genuinely
+  separate regional proxies is future data, not code).
 - ERC-8004 on-chain identity/reputation (Layer 3 stretch).
 - **Live** self-funding via Circle faucet on the demo path — documented only; the agent
   runs on a **pre-funded** wallet (decision §4.2).
@@ -153,10 +153,14 @@ seller's verify→settle code.
   the existing [`handleSettle`](../../../apps/edge-node/src/settle-endpoint.ts) flow:
   1. No `PAYMENT-SIGNATURE` header → **402** with a `PAYMENT-REQUIRED` challenge built from
      `buildRequirements(pricePerRequestUsd_in_µUSD, sellerAddress)`.
-  2. With signature → `facilitator.verify` → `facilitator.settle` → on success, **proxy-fetch
-     the target URL through this node** and return `{status, bytes, egressIp}`.
-  3. Persist a `settlements` row (reuse `onSettled`), tagged so the agent path is
-     distinguishable from streaming sessions.
+  2. With signature → `facilitator.verify` (off-chain; proves funds + intent, **no money
+     moves yet**) → **proxy-fetch the target URL through this node** → only if egress is
+     delivered, `facilitator.settle` (the on-chain charge). This verify→fetch→settle
+     ordering *is* the refund policy (§8): the buyer is charged only for egress that
+     actually happened, so a failed connection needs no reverse on-chain transfer.
+  3. On settle success, persist a `settlements` row (reuse `onSettled`), tagged so the
+     agent path is distinguishable from streaming sessions, and return `{status, bytes,
+     egressIp}`.
 - **Why reuse, not fork:** the `buildRequirements`, facilitator verify/settle, and
   settlements persistence are identical; only the *unit of value* differs (one request vs.
   unsettled metered bytes) and the *fulfillment* differs (proxy-fetch + return body vs.
@@ -210,9 +214,11 @@ Mirror the `settlements` realtime + public-read pattern from
 3. buyer-brain calls `listNodes` → picks `tokyo-1` (reasoning written as an `agent_event`).
 4. buyer-brain calls `payRequest(url)`:
    - guardrails check: would this exceed budget? If yes → stop, mark `budget_exhausted`.
-   - x402 buyer hits `POST /egress` → 402 → signs → retries → node settles + proxy-fetches.
-   - one `settlements` row written; one `agent_events` row (`kind=payment`) written;
-     `agent_runs.spent_micro_usd` incremented.
+   - x402 buyer hits `POST /egress` → 402 → signs → retries. Node verifies, **proxy-fetches**,
+     and settles only on delivered egress (§6.2). If the connection fails the node returns an
+     error and **no charge occurs** (§8).
+   - on a charged request: one `settlements` row written; one `agent_events` row
+     (`kind=payment`) written; `agent_runs.spent_micro_usd` incremented.
 5. buyer-brain reasons over the returned content; repeats 4 until the goal is met or budget
    is hit.
 6. Agent writes a `result` event, sets `agent_runs.status=succeeded`, exits 0.
@@ -224,12 +230,19 @@ Mirror the `settlements` realtime + public-read pattern from
   `budget_exhausted` with a partial result. This is a *normal* terminal state, not a crash.
 - **No API key:** agent runs in mock mode (deterministic plan) — never errors for missing
   key; logs that it's mocked.
-- **`POST /egress` settle failure:** returns 402 with reason (as `handleSettle` does); the
-  agent records an `error` event and either retries once or aborts per guardrail policy.
-- **Target fetch failure (4xx/5xx/timeout):** node still returns `{status, bytes,
-  egressIp}` with the upstream status; **payment already happened** (you paid for the
-  egress attempt) — the agent reasons about the failure. (Open question for review: do we
-  refund / skip-charge on upstream failure? Default: charge, since egress was performed.)
+- **Connection / egress failure (the "VPN didn't work" case):** if the node **cannot
+  deliver egress** — can't establish the outbound connection, DNS failure, connect timeout,
+  proxy/internal error — it returns an error and **does NOT settle**, so the buyer is
+  **never charged**. Because settlement is the on-chain charge and we withhold it until
+  egress is delivered (verify→fetch→settle, §6.2), "refund on failure" needs no reverse
+  on-chain transfer. The agent records an `error` event and may retry once or pick another
+  node per guardrail policy.
+- **Upstream responded (any HTTP status, incl. 4xx/5xx):** egress *was* delivered — the
+  node reached the target and proxied a response — so the request **is charged** and
+  returns `{status, bytes, egressIp}`. A 500 *from the destination* is a successful proxied
+  request; the agent reasons about that application-level error.
+- **Payment verify failure (bad/insufficient signature):** node returns 402 with reason
+  (as `handleSettle` does), before any fetch; the agent records an `error` event.
 - **Supabase write failure:** soft-fail the event write (log, continue) so persistence
   problems never break the actual egress/payment.
 
@@ -237,9 +250,10 @@ Mirror the `settlements` realtime + public-read pattern from
 
 - **`apps/agent` unit tests:** guardrails (over-budget refused, request-cap enforced);
   mock buyer-brain drives a full scripted run; events writer shapes rows correctly.
-- **edge-node `POST /egress` tests:** 402-without-signature; verify→settle→proxy-fetch
-  with a faked facilitator + faked upstream; SSRF rejection of private URLs; settlements
-  row written.
+- **edge-node `POST /egress` tests:** 402-without-signature; happy path
+  (verify→fetch→settle) with a faked facilitator + faked upstream writes a settlements row;
+  **connection failure → no settle, no settlements row** (refund policy); upstream HTTP
+  error status → still charged; SSRF rejection of private URLs.
 - **Integration (mock mode):** run the CLI end-to-end against a local edge-node with a fake
   facilitator → assert `agent_runs`/`agent_events`/`settlements` rows and a clean exit.
 - **Live-verify (one real run):** like Layer 1, do exactly one real Arc-testnet `payRequest`
@@ -256,7 +270,11 @@ Mirror the `settlements` realtime + public-read pattern from
   already one independent pay).
 - **Circle faucet for Arc:** confirm the faucet command/endpoint works for ARC-TESTNET so
   the onboarding doc is accurate (doc-only, not demo-critical).
-- **Upstream-failure charging policy** (§8) — pick refund vs. charge before implementation.
+- **verify→fetch→settle ordering is settleable:** confirm the facilitator accepts a
+  `verify` followed (after the proxied fetch) by a `settle` on the *same* signed payload —
+  i.e. holding between the two steps doesn't invalidate it. This underpins the refund
+  policy (§8); if the facilitator can't split verify/settle this way, fall back to
+  settle-then-best-effort-refund and flag it.
 - Reconfirm the **30-day `maxTimeoutSeconds`** requirement holds for `/egress` (it shares
   `buildRequirements`, so it should — but the live facilitator is the authority).
 
@@ -266,11 +284,13 @@ Multi-region node fleet · ERC-8004 · live self-funding/faucet on the demo path
 launch-from-web · human co-pilot surface · Layer-2 deployment to Fly/Vercel. These are
 future slices or stretch goals, each with its own spec → plan cycle.
 
-## 12. Open items for the spec reviewer
+## 12. Reviewer decisions (resolved 2026-06-19)
 
-1. Upstream-failure charging policy (§8) — refund or charge? (default: charge.)
-2. Should `agent_events.content` embed the full reasoning text, or a summary + pointer?
-   (default: full text — it's the demo's whole point, and contains no secrets.)
-3. Is one seeded node enough for the demo's "node selection" reasoning to look credible,
-   or do we seed 2–3 rows (data-only, all pointing at the same proxy) so the choice is
-   visible? (recommendation: seed 2–3 rows.)
+1. **Charging policy:** charge **only for delivered egress**. If the connection/egress
+   fails, the buyer is **not charged** — refund-by-withholding-settlement (verify→fetch→
+   settle, §6.2 / §8). An upstream HTTP error status still counts as delivered egress →
+   charged.
+2. **Reasoning storage:** store the **full** reasoning text in `agent_events.content` (it's
+   the demo's whole point and contains no secrets).
+3. **Node seeding:** seed **2–3 node rows** (data-only, all pointing at the same proxy for
+   the MVP) so the agent's node-selection reasoning is visibly making a choice.
