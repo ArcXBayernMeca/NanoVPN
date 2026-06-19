@@ -267,3 +267,7 @@ a:hover { text-decoration: underline; }
 @media (max-width: 860px) {
   .agent-grid { grid-template-columns: 1fr; }
 }
+
+/* ---------- globe ---------- */
+.globe-wrap { position: relative; width: 100%; height: 540px; border-radius: 16px; overflow: hidden; background: radial-gradient(120% 120% at 50% 30%, #0b1a12 0%, #07120d 60%, #050d09 100%); border: 1px solid var(--line); }
+.globe-wrap canvas { display: block; }
