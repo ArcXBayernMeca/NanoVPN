@@ -6,7 +6,8 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "wallets": "tsx scripts/generate-wallets.ts"
+    "wallets": "tsx scripts/generate-wallets.ts",
+    "agent": "pnpm --filter @nanovpn/agent start --"
   },
   "devDependencies": {
     "tsx": "^4.21.0",
