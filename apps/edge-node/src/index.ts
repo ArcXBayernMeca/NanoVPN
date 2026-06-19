@@ -5,12 +5,32 @@ import { BatchFacilitatorClient } from "@circle-fin/x402-batching/server";
 import { SessionRegistry } from "./sessions";
 import { handleConnect } from "./proxy";
 import { handleSettle } from "./settle-endpoint";
+import { handleEgress } from "./egress-endpoint";
+import { microUsdForRequest } from "@nanovpn/core";
 import { streamUsage } from "./usage-sse";
 import { startSettlementLoop } from "./settlement-loop";
 
 const PORT = Number(process.env.EDGE_NODE_PORT ?? 8080);
 const SELLER_ADDRESS = process.env.SELLER_ADDRESS!;
 const SELF = process.env.EDGE_NODE_PUBLIC_URL ?? `http://localhost:${PORT}`;
+
+const EGRESS_PRICE_MICRO_USD = microUsdForRequest(Number(process.env.EDGE_NODE_PRICE_PER_REQUEST_USD ?? 0.001));
+
+// The node's own outbound IP = the geo proof returned to agents. Resolve once at
+// startup (env override → public echo → "unknown"); never blocks request handling.
+let EGRESS_IP = process.env.EDGE_NODE_EGRESS_IP ?? "unknown";
+async function resolveEgressIp() {
+  if (EGRESS_IP !== "unknown") return;
+  try { EGRESS_IP = ((await (await fetch("https://api.ipify.org?format=json")).json()) as { ip?: string }).ip ?? "unknown"; }
+  catch { /* leave "unknown" — non-fatal */ }
+}
+
+// Real per-request egress: fetch the target server-side (the node IS the egress) and count body bytes.
+async function fetchTarget(url: URL): Promise<{ status: number; bytes: number }> {
+  const r = await fetch(url, { redirect: "follow" });
+  const buf = await r.arrayBuffer();
+  return { status: r.status, bytes: buf.byteLength };
+}
 
 const registry = new SessionRegistry();
 const facilitator = new BatchFacilitatorClient();
@@ -38,6 +58,10 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname.startsWith("/usage/")) { streamUsage(res, registry, url.pathname.split("/")[2]); return; }
     if (url.pathname === "/settle") { await handleSettle(req, res, { registry, facilitator, sellerAddress: SELLER_ADDRESS, onSettled }); return; }
+    if (url.pathname === "/egress" && req.method === "POST") {
+      await handleEgress(req, res, { facilitator, sellerAddress: SELLER_ADDRESS, priceMicroUsd: EGRESS_PRICE_MICRO_USD, egressIp: EGRESS_IP, fetchTarget });
+      return;
+    }
     res.writeHead(404).end("not found");
   } catch (err) {
     const code = err instanceof SyntaxError ? 400 : 500;
@@ -52,4 +76,4 @@ function readJson(req: http.IncomingMessage): Promise<any> {
 }
 
 startSettlementLoop(registry, buyer, `${SELF}/settle`);
-server.listen(PORT, () => console.log(`[edge-node] http+proxy on ${PORT}`));
+server.listen(PORT, () => { console.log(`[edge-node] http+proxy on ${PORT}`); void resolveEgressIp(); });
