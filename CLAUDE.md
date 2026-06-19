@@ -23,27 +23,32 @@ An **AI "buyer brain"** sits on the buyer side: for humans it's a co-pilot that
 auto-selects the best node and manages the budget; for agents it *is* the client. This
 is what earns the hackathon's **30% "Agentic Sophistication"** score.
 
-## Current status (as of 2026-06-17)
+## Current status (as of 2026-06-19)
 
-**Phase: brainstorming / design.** No application code yet. Decisions made so far are
-recorded as ADRs. Several design areas are still open (see below).
+**Phase: Layer 1 + Layer 2 BUILT, reviewed, live-verified on Arc testnet, and merged to
+`main`.** Both layers went through `superpowers:brainstorming → writing-plans →
+subagent-driven-development`. All 10 design decisions are locked as ADRs
+(see [docs/04-decisions/](docs/04-decisions/)).
 
-- ✅ Core framing locked → [ADR-0001](docs/04-decisions/ADR-0001-core-framing.md)
-- ✅ Egress realism locked (real proxy, 2–3 geo nodes, real USDC) → [ADR-0002](docs/04-decisions/ADR-0002-egress-realism.md)
-- ✅ Settlement model locked (streaming balance + x402) → [ADR-0003](docs/04-decisions/ADR-0003-settlement-model.md)
-- ✅ Wallet model locked (humans: connected EOA or modular/passkey; agents: Agent Stack Agent Wallet) → [ADR-0004](docs/04-decisions/ADR-0004-wallet-model.md)
-- ✅ Agent self-onboarding + auto-funding locked (hosted doc + Circle programmatic faucet) → [ADR-0005](docs/04-decisions/ADR-0005-agent-onboarding.md)
-- ✅ Node registry locked (off-chain two-tier + light reputation; ERC-8004 on-chain as Layer 3 stretch) → [ADR-0006](docs/04-decisions/ADR-0006-node-registry.md)
-- ✅ Pricing locked (per-node differentiated rates; $0.01-or-~10s settlement) → [ADR-0007](docs/04-decisions/ADR-0007-pricing.md)
-- ✅ Proxy tech locked (HTTP CONNECT + byte metering, Node/TS, Fly.io 3 regions) → [ADR-0008](docs/04-decisions/ADR-0008-proxy-tech.md)
-- ✅ Data store locked (Supabase) → [ADR-0009](docs/04-decisions/ADR-0009-data-store.md)
-- ✅ Human sign-in locked (pure-wallet SIWE/passkey; email login → v2) → [ADR-0010](docs/04-decisions/ADR-0010-auth.md)
-- ✅ UI/brand + buyer-brain design locked (in the design spec)
-- ✅ **All design open questions CLOSED** (2026-06-17). Next: human reviews the finalized
-  [design spec](docs/specs/2026-06-16-nanovpn-design.md), then `superpowers:writing-plans`.
+- ✅ **Layer 1 — human metered-egress MVP** (merged): wallet + SIWE sign-in, NordVPN-style
+  world map, connect flow, HTTP-CONNECT proxy with byte metering, **streaming USDC
+  settlement on Arc**, live counter + settlement tape. Live-verified end-to-end with a real
+  on-chain settlement.
+- ✅ **Layer 2 — autonomous agent egress buyer** (merged 2026-06-19): a Claude-driven CLI
+  agent that, from a one-line goal + USDC budget, **reasons about which node to use and pays
+  x402 per request** for geo-located egress, with deterministic budget guardrails and a mock
+  mode. Adds edge-node `POST /egress` (x402 per-request, verify→fetch→settle so a failed
+  connection is never charged), Supabase `agent_runs`/`agent_events` (realtime, public-read),
+  and a web `/agent` observation panel. **Live-verified with real Claude reasoning + a real
+  on-chain settlement on Arc.**
+- ✅ Design + plan docs: Layer-1 spec [docs/specs/2026-06-16-nanovpn-design.md](docs/specs/2026-06-16-nanovpn-design.md);
+  Layer-2 spec + plan under [docs/superpowers/](docs/superpowers/).
 
-**Do not start implementation** until the design spec is complete and the human has
-approved it. We are following the `superpowers:brainstorming` → `writing-plans` flow.
+**Tests:** 65 across the monorepo (`pnpm -r test`). **Typecheck/build:** `pnpm -r build` clean.
+
+**Remaining (stretch / ops):** deploy (edge-node → Fly, web → Vercel) per
+[docs/deploy.md](docs/deploy.md); optional stretch — launch-agent-from-web, multi-region
+nodes, ERC-8004 on-chain identity (Layer 3).
 
 ## Where things live
 
@@ -56,7 +61,23 @@ approved it. We are following the `superpowers:brainstorming` → `writing-plans
 | [docs/03-stack-and-tooling.md](docs/03-stack-and-tooling.md) | Arc/Circle/x402 specs, CLIs, SDKs, env vars, reference repos |
 | [docs/04-decisions/](docs/04-decisions/) | Architecture Decision Records (ADRs) |
 | [docs/05-glossary.md](docs/05-glossary.md) | Terms: nanopayment, x402, Gateway, lepton, etc. |
-| [docs/specs/](docs/specs/) | Living design spec(s) |
+| [docs/specs/](docs/specs/) · [docs/superpowers/](docs/superpowers/) | Design specs + implementation plans |
+| [docs/deploy.md](docs/deploy.md) | Fly + Vercel deploy guide |
+| [packages/core/](packages/core/) | Shared Arc constants, types, µUSD pricing |
+| [apps/edge-node/](apps/edge-node/) | Node/TS proxy node: HTTP-CONNECT proxy + byte meter + x402 `/settle` (streaming) & `/egress` (per-request) |
+| [apps/web/](apps/web/) | Next.js app — human world-map UI, agent `/agent` panel, API routes |
+| [apps/agent/](apps/agent/) | Claude-driven autonomous x402 egress-buyer CLI |
+| [supabase/migrations/](supabase/migrations/) | DB schema (`0001` core, `0002` agent) |
+
+## Build, test, run
+
+pnpm workspace monorepo, Node ≥22, ESM throughout.
+
+- **Install:** `pnpm install` · **Test all:** `pnpm -r test` (65 tests) · **Typecheck:** `pnpm -r build`
+- **Edge-node** does NOT auto-load `.env`: `set -a; source .env; set +a; EDGE_NODE_PORT=8080 pnpm --filter @nanovpn/edge-node start`. Stop it **by port** (`lsof -ti tcp:8080 | xargs -r kill`) — never `pkill -f tsx` (it kills the shell).
+- **Web:** `pnpm --filter web dev` (auto-loads `apps/web/.env.local`). If CSS edits don't appear in dev, `rm -rf apps/web/.next` (Turbopack stale-chunk).
+- **Agent:** `pnpm agent --goal "…" --budget 0.02 [--node tokyo-1] [--mock]`. Needs root `.env` (`BUYER_PRIVATE_KEY`, Supabase keys, and `ANTHROPIC_API_KEY` for real reasoning; runs in mock mode with `--mock` or no key — mock still does a real on-chain settlement).
+- Env vars: see [.env.example](.env.example). Supabase migrations are applied manually via the Supabase SQL editor (no CLI configured locally).
 
 ## Hard constraints (read before writing any code)
 
