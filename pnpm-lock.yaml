@@ -85,6 +85,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@nanovpn/agent':
+        specifier: workspace:^
+        version: link:../agent
       '@nanovpn/core':
         specifier: workspace:*
         version: link:../../packages/core
