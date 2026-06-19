@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { microUsdForBytes, shouldSettle, SETTLE_THRESHOLD_MICRO_USD } from "../src/pricing";
+import { microUsdForBytes, shouldSettle, SETTLE_THRESHOLD_MICRO_USD, microUsdForRequest } from "../src/pricing";
 
 describe("microUsdForBytes", () => {
   it("prices 1 GB at the per-GB rate in µUSD", () => {
@@ -25,5 +25,15 @@ describe("shouldSettle", () => {
   it("settles when ~10s elapse with any unsettled balance", () => {
     expect(shouldSettle(1, 10_000)).toBe(true);
     expect(shouldSettle(0, 10_000)).toBe(false); // nothing to settle
+  });
+});
+
+describe("microUsdForRequest", () => {
+  it("converts a flat USD per-request price to integer µUSD", () => {
+    expect(microUsdForRequest(0.001)).toBe(1000); // $0.001 = 1000 atomic units
+    expect(microUsdForRequest(0.01)).toBe(10000);
+  });
+  it("rounds to an integer (no fractional atomic units)", () => {
+    expect(microUsdForRequest(0.0000015)).toBe(2); // 1.5 → 2
   });
 });
