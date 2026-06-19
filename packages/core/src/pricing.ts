@@ -11,3 +11,8 @@ export function shouldSettle(unsettledMicroUsd: number, msSinceLastSettle: numbe
   if (unsettledMicroUsd <= 0) return false;
   return unsettledMicroUsd >= SETTLE_THRESHOLD_MICRO_USD || msSinceLastSettle >= SETTLE_INTERVAL_MS;
 }
+
+/** Flat per-request price ($) → integer µUSD (atomic USDC, 6 dec). */
+export function microUsdForRequest(pricePerRequestUsd: number): number {
+  return Math.round(pricePerRequestUsd * 1_000_000);
+}
