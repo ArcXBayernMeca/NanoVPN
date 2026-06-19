@@ -1,0 +1,18 @@
+{
+  "name": "@nanovpn/agent",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@nanovpn/core": "workspace:*",
+    "@circle-fin/x402-batching": "^2.0.4",
+    "@anthropic-ai/sdk": "^0.69.0",
+    "@supabase/supabase-js": "^2.99.0",
+    "viem": "^2.47.1"
+  },
+  "devDependencies": { "tsx": "^4.21.0", "typescript": "^5.9.3", "vitest": "^2.1.0", "@types/node": "^20.0.0" }
+}
