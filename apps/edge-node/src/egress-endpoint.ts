@@ -49,7 +49,10 @@ export async function handleEgress(req: IncomingMessage, res: ServerResponse, de
   // 3. settle (the on-chain charge) — only because egress was delivered.
   const settled = await deps.facilitator.settle(payload, requirements);
   if (!settled.success || !settled.transaction) {
-    res.writeHead(402, { "Content-Type": "application/json" }).end(JSON.stringify({ error: settled.errorReason ?? "settle failed" }));
+    // 502: settlement failed AFTER egress was delivered — transient seller-side condition; distinct
+    // from the 402 verify-rejection above (where no money moved). The agent should treat this as
+    // retryable; the buyer may already be debited.
+    res.writeHead(502, { "Content-Type": "application/json" }).end(JSON.stringify({ error: settled.errorReason ?? "settle failed" }));
     return;
   }
 

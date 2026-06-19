@@ -9,6 +9,7 @@ import { handleEgress } from "./egress-endpoint";
 import { microUsdForRequest } from "@nanovpn/core";
 import { streamUsage } from "./usage-sse";
 import { startSettlementLoop } from "./settlement-loop";
+import { fetchPublic } from "./fetch-public";
 
 const PORT = Number(process.env.EDGE_NODE_PORT ?? 8080);
 const SELLER_ADDRESS = process.env.SELLER_ADDRESS!;
@@ -26,10 +27,9 @@ async function resolveEgressIp() {
 }
 
 // Real per-request egress: fetch the target server-side (the node IS the egress) and count body bytes.
+// fetchPublic re-validates the URL at each redirect hop (SSRF) and enforces a body-size cap (DoS).
 async function fetchTarget(url: URL): Promise<{ status: number; bytes: number }> {
-  const r = await fetch(url, { redirect: "follow" });
-  const buf = await r.arrayBuffer();
-  return { status: r.status, bytes: buf.byteLength };
+  return fetchPublic(url.href);
 }
 
 const registry = new SessionRegistry();

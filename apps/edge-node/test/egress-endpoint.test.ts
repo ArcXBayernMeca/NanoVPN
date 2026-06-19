@@ -72,6 +72,23 @@ describe("handleEgress", () => {
     expect(JSON.parse(res.body).status).toBe(503);
   });
 
+  it("settle failure after delivered egress responds 502 (transient seller-side, not 402)", async () => {
+    const res = fakeRes();
+    const facilitator = {
+      verify: vi.fn().mockResolvedValue({ isValid: true, payer: "0xpayer" }),
+      settle: vi.fn().mockResolvedValue({ success: false, errorReason: "arc timeout" }),
+    };
+    const fetchTarget = vi.fn().mockResolvedValue({ status: 200, bytes: 512 });
+    await handleEgress(
+      { url: "/egress?url=https%3A%2F%2Fexample.com", headers: { "payment-signature": sig } } as any, res as any,
+      { facilitator: facilitator as any, sellerAddress: SELLER, priceMicroUsd: 1000, egressIp: "203.0.113.7", fetchTarget, lookup: publicLookup },
+    );
+    expect(facilitator.verify).toHaveBeenCalled();
+    expect(fetchTarget).toHaveBeenCalled();
+    expect(facilitator.settle).toHaveBeenCalled();
+    expect(res.statusCode).toBe(502); // egress delivered, settle failed seller-side — retryable
+  });
+
   it("rejects a private target with 400 (SSRF) before any payment", async () => {
     const res = fakeRes();
     const fetchTarget = vi.fn();
