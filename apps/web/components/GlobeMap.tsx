@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import type { NodeListing } from "@nanovpn/core";
 import { useUserLocation } from "@/lib/use-user-location";
@@ -18,8 +18,9 @@ export function GlobeMap({ nodes, selectedId, connected, streaming, onSelect }: 
   const globeRef = useRef<any>(null);
   const userLoc = useUserLocation();
 
-  // Auto-rotate until the user first interacts with the globe.
-  useEffect(() => {
+  // Called once by react-globe.gl after the WebGL globe initialises and
+  // globeRef.current is valid. Sets up auto-rotate and the initial fly-to.
+  const handleReady = useCallback(() => {
     const g = globeRef.current;
     if (!g || !g.controls) return;
     const c = g.controls();
@@ -27,8 +28,12 @@ export function GlobeMap({ nodes, selectedId, connected, streaming, onSelect }: 
     c.autoRotateSpeed = 0.6;
     const stop = () => { c.autoRotate = false; };
     c.addEventListener?.("start", stop);
-    return () => c.removeEventListener?.("start", stop);
-  }, []);
+    // If a node is already selected at mount time, fly to it immediately.
+    if (selectedId) {
+      const n = nodes.find((x) => x.id === selectedId);
+      if (n) g.pointOfView({ lat: n.geo.lat, lng: n.geo.lng, altitude: 1.6 }, 0);
+    }
+  }, [selectedId, nodes]);
 
   // Fly the camera to the selected node.
   useEffect(() => {
@@ -57,6 +62,7 @@ export function GlobeMap({ nodes, selectedId, connected, streaming, onSelect }: 
   return (
     <Globe
       ref={globeRef}
+      onGlobeReady={handleReady}
       globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
       backgroundColor="rgba(0,0,0,0)"
       atmosphereColor="#15d687"
