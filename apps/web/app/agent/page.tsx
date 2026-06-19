@@ -1,5 +1,6 @@
 import { supabaseService } from "@/lib/supabase-server";
 import { AgentFeed } from "@/components/AgentFeed";
+import { AgentRunForm } from "@/components/AgentRunForm";
 import { formatUsd } from "@/components/format";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ export default async function AgentPage({ searchParams }: { searchParams: Promis
     return (
       <main className="agent-page">
         <h1>Autonomous agent</h1>
+        <AgentRunForm />
         <p className="muted">No agent runs yet. Start one: <code>pnpm agent --goal &quot;…&quot; --budget 0.5</code></p>
       </main>
     );
@@ -26,6 +28,7 @@ export default async function AgentPage({ searchParams }: { searchParams: Promis
   return (
     <main className="agent-page">
       <h1>Autonomous agent</h1>
+      <AgentRunForm />
       <header className="agent-run">
         <p className="agent-run__goal">{row.goal}</p>
         <div className="agent-run__meta">
