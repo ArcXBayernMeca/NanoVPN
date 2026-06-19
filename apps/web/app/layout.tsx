@@ -2,6 +2,7 @@ import "./globals.css";
 import type { ReactNode } from "react";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { Providers } from "./providers";
+import { SiteNav } from "@/components/SiteNav";
 
 const display = Space_Grotesk({
   subsets: ["latin"],
@@ -25,7 +26,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${mono.variable}`}>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <SiteNav />
+          {children}
+        </Providers>
       </body>
     </html>
   );

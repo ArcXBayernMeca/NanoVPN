@@ -32,6 +32,14 @@ a { color: var(--green); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* ---------- shell ---------- */
+.sitenav { display: flex; align-items: center; gap: 24px; padding: 14px 24px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.sitenav__brand { font-family: var(--font-display); font-weight: 500; color: var(--ink); text-decoration: none; letter-spacing: -0.01em; }
+.sitenav__brand b { color: var(--green); font-weight: 700; }
+.sitenav__links { display: flex; gap: 18px; }
+.sitenav__links a { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); text-decoration: none; }
+.sitenav__links a:hover { color: var(--ink); }
+.sitenav .netpill { margin-left: auto; }
+
 .app { min-height: 100vh; display: flex; flex-direction: column; }
 
 .topbar {
