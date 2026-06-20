@@ -346,7 +346,7 @@ a:hover { text-decoration: underline; }
 .run-form__budget { width: 92px; }
 .run-form__mock { font-family: var(--font-mono); font-size: 12px; color: var(--muted); display: inline-flex; gap: 5px; align-items: center; }
 
-/* ---------- developers page ---------- */
+/* ---------- developers page (legacy classes — kept for safety) ---------- */
 .dev-page { max-width: 880px; margin: 0 auto; padding: 32px 24px; }
 .dev-page h1 { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 8px; }
 .dev-lede { color: var(--muted); font-size: 15px; line-height: 1.55; margin: 0 0 24px; max-width: 60ch; }
@@ -356,3 +356,22 @@ a:hover { text-decoration: underline; }
 .dev-facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-mono); font-size: 12.5px; }
 .dev-facts li { display: flex; gap: 12px; } .dev-facts b { width: 84px; color: var(--muted); font-weight: 500; }
 .copy-btn { font-size: 12px; padding: 6px 12px; }
+
+/* ---------- use-with-agent onboarding page (layout A — centered quickstart) ---------- */
+.onb { max-width: 720px; margin: 0 auto; padding: 48px 24px; }
+.onb h1 { font-family: var(--font-display); font-weight: 700; font-size: 26px; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 10px; }
+.onb__lede { color: var(--muted); font-size: 15px; line-height: 1.55; margin: 0 0 24px; max-width: 58ch; }
+.onb__flow {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-family: var(--font-mono); font-size: 12px;
+  background: var(--canvas); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 14px; margin-bottom: 28px;
+}
+.onb__flow span { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; color: var(--ink); }
+.onb__flow i { color: var(--muted); font-style: normal; }
+.onb__sec { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; }
+.onb__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.onb__code { font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; background: var(--canvas); border: 1px solid var(--line); border-radius: 10px; padding: 14px; color: var(--ink); margin: 10px 0 0; }
+.onb__facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-mono); font-size: 12.5px; }
+.onb__facts li { display: flex; gap: 12px; align-items: baseline; }
+.onb__facts b { width: 84px; color: var(--muted); font-weight: 500; flex-shrink: 0; }
