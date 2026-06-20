@@ -1,4 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
+
+vi.mock("@nanovpn/core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@nanovpn/core")>();
+  return { ...actual, fetchSettlementTxHash: vi.fn().mockResolvedValue(null) };
+});
+
 import { startRun } from "../src/events";
 
 function fakeDb() {
@@ -23,7 +29,7 @@ describe("event writer", () => {
     const run = await startRun(db as any, { runId: "r1", goal: "check JP price", budgetMicroUsd: 500000, nodeId: "tokyo-1" });
     await run.reasoning("I'll use tokyo-1");
     await run.toolCall("payRequest", { url: "https://x" });
-    await run.payment({ amountMicroUsd: 1000, transaction: "tx1", status: 200, bytes: 2048, egressIp: "203.0.113.7" });
+    await run.payment({ amountMicroUsd: 1000, transaction: "tx1", status: 200, bytes: 2048, egressIp: "203.0.113.7", nodeId: "tokyo-1" });
     await run.finish("succeeded", "done");
 
     const runRow = db.inserts.find((i) => i.table === "agent_runs")!.row;
