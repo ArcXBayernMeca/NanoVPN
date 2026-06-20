@@ -15,7 +15,7 @@ export interface RunParams { goal: string; budgetUsd: number; mock?: boolean; no
 export async function prepareRun(params: RunParams): Promise<{ runId: string; run: () => Promise<{ status: string; result: string }> }> {
   const { goal, budgetUsd } = params;
   const mock = params.mock || !process.env.ANTHROPIC_API_KEY;
-  if (!mock && !process.env.BUYER_PRIVATE_KEY) throw new Error("BUYER_PRIVATE_KEY not configured");
+  if (!process.env.BUYER_PRIVATE_KEY) throw new Error("BUYER_PRIVATE_KEY not configured");
 
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
   const nodes = (await db.from("nodes").select("id,city,country,proxy_url,price_per_request_usd")).data ?? [];

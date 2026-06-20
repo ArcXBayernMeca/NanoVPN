@@ -20,12 +20,12 @@ function recordingEvents() {
 describe("runAgent", () => {
   it("runs reasoning → payRequest → end_turn and records events", async () => {
     const brain = new MockBrain([
-      { content: [{ type: "text", text: "using tokyo-1" }, { type: "tool_use", id: "t1", name: "payRequest", input: { url: "https://x" } }], stopReason: "tool_use" },
+      { content: [{ type: "text", text: "using tokyo-1" }, { type: "tool_use", id: "t1", name: "payRequest", input: { nodeId: "tokyo-1", url: "https://x" } }], stopReason: "tool_use" },
       { content: [{ type: "text", text: "got it" }], stopReason: "end_turn" },
     ]);
     const executors = {
       listNodes: vi.fn(), getBalance: vi.fn(),
-      payRequest: vi.fn().mockResolvedValue({ status: 200, bytes: 2048, egressIp: "203.0.113.7", amountMicroUsd: 1000, transaction: "tx1" }),
+      payRequest: vi.fn().mockResolvedValue({ status: 200, bytes: 2048, egressIp: "203.0.113.7", amountMicroUsd: 1000, transaction: "tx1", nodeId: "tokyo-1" }),
     };
     const guardrails = new Guardrails(500000, 1000);
     const events = recordingEvents();

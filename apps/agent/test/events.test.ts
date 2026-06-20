@@ -46,4 +46,14 @@ describe("event writer", () => {
     const finishUpdate = db.updates.find((u) => u.table === "agent_runs" && u.row.status === "succeeded");
     expect(finishUpdate).toBeTruthy();
   });
+
+  it("setNode is idempotent — issues only one UPDATE for node_id even when called twice", async () => {
+    const db = fakeDb();
+    const run = await startRun(db as any, { runId: "r2", goal: "idempotency check", budgetMicroUsd: 100000, nodeId: null });
+    await run.setNode("tokyo-1");
+    await run.setNode("tokyo-1"); // second call must be a no-op
+    const nodeUpdates = db.updates.filter((u) => u.table === "agent_runs" && "node_id" in u.row);
+    expect(nodeUpdates).toHaveLength(1);
+    expect(nodeUpdates[0].row.node_id).toBe("tokyo-1");
+  });
 });

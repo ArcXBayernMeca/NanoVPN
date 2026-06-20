@@ -18,13 +18,13 @@ vi.mock("@circle-fin/x402-batching/client", () => ({ GatewayClient: class { pay(
 
 import { prepareRun } from "../src/runner";
 
-beforeEach(() => { inserted.length = 0; delete process.env.ANTHROPIC_API_KEY; });
+beforeEach(() => { inserted.length = 0; delete process.env.ANTHROPIC_API_KEY; process.env.BUYER_PRIVATE_KEY = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"; });
 
 describe("prepareRun", () => {
   it("inserts the run row and returns a runId + run thunk", async () => {
     const { runId, run } = await prepareRun({ goal: "g", budgetUsd: 0.02, mock: true });
     expect(runId).toMatch(/[0-9a-f-]{36}/);
     expect(typeof run).toBe("function");
-    expect(inserted[0]).toMatchObject({ id: runId, goal: "g", status: "running" });
+    expect(inserted[0]).toMatchObject({ id: runId, goal: "g", status: "running", node_id: null });
   });
 });
