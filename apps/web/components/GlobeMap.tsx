@@ -41,6 +41,9 @@ export function GlobeMap({ nodes, selectedId, connected, streaming, onSelect }: 
     c.autoRotateSpeed = 0.6;
     const stop = () => { c.autoRotate = false; };
     c.addEventListener?.("start", stop);
+    // Brighten the material + relief
+    const m = g.globeMaterial?.();
+    if (m) { m.bumpScale = 10; m.shininess = 15; }
     // If a node is already selected at mount time, fly to it immediately.
     if (selectedId) {
       const n = nodes.find((x) => x.id === selectedId);
@@ -80,16 +83,18 @@ export function GlobeMap({ nodes, selectedId, connected, streaming, onSelect }: 
           width={dims.w}
           height={dims.h}
           onGlobeReady={handleReady}
-          globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
-          backgroundColor="rgba(0,0,0,0)"
-          atmosphereColor="#15d687"
-          atmosphereAltitude={0.22}
+          globeImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg"
+          bumpImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png"
+          backgroundImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png"
+          showAtmosphere
+          atmosphereColor="#39ff14"
+          atmosphereAltitude={0.18}
           pointsData={points}
           pointLat="lat"
           pointLng="lng"
-          pointColor={(d: any) => (d.selected ? "#15d687" : "#2fe39a")}
-          pointAltitude={(d: any) => (d.selected ? 0.14 : 0.06)}
-          pointRadius={(d: any) => (d.selected ? 0.85 : 0.6)}
+          pointColor={(d: any) => (d.selected ? "#aaffcc" : "#39ff14")}
+          pointAltitude={(d: any) => (d.selected ? 0.18 : 0.1)}
+          pointRadius={(d: any) => (d.selected ? 1.0 : 0.7)}
           pointLabel={(d: any) => `${d.city} · $${d.rate}/GB`}
           onPointClick={(d: any) => onSelect(d.id)}
           ringsData={rings}
