@@ -280,6 +280,16 @@ a:hover { text-decoration: underline; }
 .globe-wrap { position: relative; width: 100%; height: 540px; border-radius: 16px; overflow: hidden; background: radial-gradient(120% 120% at 50% 30%, #0b1a12 0%, #07120d 60%, #050d09 100%); border: 1px solid var(--line); }
 .globe-wrap canvas { display: block; }
 
+/* ---------- map layout A — full-bleed stage + glass rail ---------- */
+.sitenav { --nav-h: 56px; }
+.map-stage { position: relative; height: calc(100vh - var(--nav-h, 56px)); width: 100%; overflow: hidden; }
+.map-globe { position: absolute; inset: 0; }
+.maprail { position: absolute; top: 18px; right: 18px; width: 300px; max-height: calc(100% - 36px); overflow: auto;
+  background: rgba(10,16,12,.62); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 16px; color: var(--ink, #e7efe9); }
+.maprail__sec + .maprail__sec { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.1); }
+.copilot-btn { width: 100%; } .copilot-msg { color: #7ff0aa; }
+
 /* ---------- stream controls ---------- */
 .stream-controls { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }

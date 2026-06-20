@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { GlobeMap } from "@/components/GlobeMap";
-import { Counter } from "@/components/Counter";
-import { SettlementLog } from "@/components/SettlementLog";
+import { MapRail } from "@/components/MapRail";
 import { useTrafficStream, type Intensity } from "@/lib/traffic";
 import { useWallet } from "@/components/WalletProvider";
 import type { NodeListing } from "@nanovpn/core";
@@ -15,6 +14,7 @@ export default function Page() {
   const [connecting, setConnecting] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [intensity, setIntensity] = useState<Intensity>("medium");
+  const [copilotMsg, setCopilotMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/nodes").then((r) => r.json()).then((d: NodeListing[]) => setNodes(d)).catch(() => {});
@@ -43,75 +43,19 @@ export default function Page() {
     setSession(null);
   }
 
+  // Stub — Task 12 implements the real fetch
+  async function copilotPick() { /* implemented in Task 12 */ }
+
   return (
-    <div className="app">
-      <div className="stage">
-        <div className="globe-wrap">
-          <GlobeMap
-            nodes={nodes}
-            selectedId={selected}
-            connected={!!session}
-            streaming={streaming ? intensity : null}
-            onSelect={(id) => { if (!session) setSelected(id); }}
-          />
-        </div>
-
-        <aside className="panel">
-          <section className="panel__sec">
-            <span className="eyebrow">Exit node</span>
-            {node ? (
-              <div className="node-card">
-                <span className="node-card__pin" />
-                <div>
-                  <div className="node-card__name">{node.geo.city}, {node.geo.country}</div>
-                  <div className="node-card__meta">{node.id}</div>
-                </div>
-                <span className="node-card__rate">${node.pricePerGbUsd}/GB</span>
-              </div>
-            ) : (
-              <p className="hint">Spin the globe and pick a node to route your traffic through it.</p>
-            )}
-            {!session && (
-              <div style={{ marginTop: 12 }}>
-                <button className="btn btn--primary" disabled={!selected || !signedIn || connecting} onClick={connect}>
-                  {connecting ? "Connecting…" : node ? `Connect to ${node.geo.city}` : "Connect"}
-                </button>
-                {selected && !signedIn && <p className="hint">Sign in with your wallet to connect.</p>}
-              </div>
-            )}
-          </section>
-
-          {session && node && (
-            <>
-              <section className="panel__sec">
-                <Counter sessionId={session.sessionId} rate={node.pricePerGbUsd} />
-                <div className="stream-controls">
-                  <button
-                    className={`btn ${streaming ? "btn--ghost" : "btn--primary"}`}
-                    onClick={() => setStreaming((s) => !s)}
-                  >
-                    {streaming ? "Stop traffic" : "Start traffic"}
-                  </button>
-                  <div className="seg" role="group" aria-label="intensity">
-                    {(["light", "medium", "heavy"] as Intensity[]).map((i) => (
-                      <button key={i} className="seg__btn" data-on={intensity === i} onClick={() => setIntensity(i)}>{i}</button>
-                    ))}
-                  </div>
-                </div>
-                <button className="btn btn--ghost" style={{ marginTop: 10 }} onClick={disconnect}>Disconnect</button>
-                <div className="statusline">
-                  <span className="live" /> Connected to <b>{node.geo.city}</b> · {streaming ? `streaming (${intensity})` : "idle"} · paying per byte
-                </div>
-              </section>
-
-              <section className="panel__sec">
-                <span className="eyebrow">On-chain settlements</span>
-                <SettlementLog sessionId={session.sessionId} />
-              </section>
-            </>
-          )}
-        </aside>
+    <div className="map-stage">
+      <div className="map-globe">
+        <GlobeMap nodes={nodes} selectedId={selected} connected={!!session}
+          streaming={streaming ? intensity : null} onSelect={(id) => { if (!session) setSelected(id); }} />
       </div>
+      <MapRail node={node} signedIn={signedIn} session={session} connecting={connecting}
+        streaming={streaming} intensity={intensity} copilotMsg={copilotMsg}
+        onConnect={connect} onDisconnect={disconnect} onToggleStream={() => setStreaming((s) => !s)}
+        onIntensity={setIntensity} onCopilot={copilotPick} />
     </div>
   );
 }
