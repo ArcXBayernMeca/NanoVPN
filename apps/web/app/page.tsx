@@ -43,8 +43,16 @@ export default function Page() {
     setSession(null);
   }
 
-  // Stub — Task 12 implements the real fetch
-  async function copilotPick() { /* implemented in Task 12 */ }
+  async function copilotPick() {
+    setCopilotMsg("Asking the AI to choose…");
+    const loc = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition((p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }), () => resolve(null), { timeout: 4000 });
+    });
+    const res = await fetch("/api/copilot/pick", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(loc ?? {}) }).then((r) => r.json()).catch(() => null);
+    if (res?.nodeId) { setSelected(res.nodeId); setCopilotMsg(res.reason ?? null); }
+    else setCopilotMsg("Couldn't pick automatically — choose a node on the globe.");
+  }
 
   return (
     <div className="map-stage">

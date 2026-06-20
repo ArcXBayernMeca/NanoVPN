@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.105.0",
     "@nanovpn/agent": "workspace:^",
     "@nanovpn/core": "workspace:*",
     "@supabase/ssr": "^0.9.0",
