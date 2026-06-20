@@ -1,16 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
 import { GlobeMap } from "@/components/GlobeMap";
-import { ConnectBar } from "@/components/ConnectBar";
 import { Counter } from "@/components/Counter";
 import { SettlementLog } from "@/components/SettlementLog";
 import { useTrafficStream, type Intensity } from "@/lib/traffic";
+import { useWallet } from "@/components/WalletProvider";
 import type { NodeListing } from "@nanovpn/core";
 
 export default function Page() {
   const [nodes, setNodes] = useState<NodeListing[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [signedIn, setSignedIn] = useState<string | null>(null);
+  const { signedIn } = useWallet();
   const [session, setSession] = useState<{ sessionId: string } | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [streaming, setStreaming] = useState(false);
@@ -57,11 +57,6 @@ export default function Page() {
         </div>
 
         <aside className="panel">
-          <section className="panel__sec">
-            <span className="eyebrow">Wallet</span>
-            <div style={{ marginTop: 10 }}><ConnectBar onSignedIn={(addr) => setSignedIn(addr)} /></div>
-          </section>
-
           <section className="panel__sec">
             <span className="eyebrow">Exit node</span>
             {node ? (
