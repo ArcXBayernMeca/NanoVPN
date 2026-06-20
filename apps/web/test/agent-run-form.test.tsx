@@ -10,4 +10,8 @@ describe("AgentRunForm", () => {
     expect(screen.getByPlaceholderText(/goal/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /run agent/i })).toBeInTheDocument();
   });
+  it("has no node dropdown (the agent picks)", () => {
+    const { container } = render(<AgentRunForm />);
+    expect(container.querySelector("select")).toBeNull();
+  });
 });
