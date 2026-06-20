@@ -11,11 +11,14 @@ export const TOOL_DEFS = [
   },
   {
     name: "payRequest",
-    description: "Pay USDC (x402) for ONE geo-located egress request through the selected node. Returns the upstream HTTP status, bytes transferred, and the node's egress IP (geo proof). Each call is one payment.",
+    description: "Pay USDC (x402) for ONE geo-located egress request through a SPECIFIC node you choose. Returns upstream HTTP status, bytes, and the node's egress IP (geo proof). Each call is one payment.",
     input_schema: {
       type: "object",
-      properties: { url: { type: "string", description: "The absolute https URL to fetch through the egress node." } },
-      required: ["url"], additionalProperties: false,
+      properties: {
+        nodeId: { type: "string", description: "The id of the node to route through (from listNodes)." },
+        url: { type: "string", description: "The absolute https URL to fetch through the egress node." },
+      },
+      required: ["nodeId", "url"], additionalProperties: false,
     },
   },
 ] as const;
@@ -23,7 +26,7 @@ export const TOOL_DEFS = [
 export interface Executors {
   listNodes(): Promise<{ id: string; city: string; country: string; pricePerRequestUsd: number }[]>;
   getBalance(): Promise<{ wallet: string; gatewayAvailable: string }>;
-  payRequest(input: { url: string }): Promise<{ status: number; bytes: number; egressIp: string; amountMicroUsd: number; transaction: string }>;
+  payRequest(input: { nodeId: string; url: string }): Promise<{ status: number; bytes: number; egressIp: string; amountMicroUsd: number; transaction: string; nodeId: string }>;
 }
 
 interface Buyer {
@@ -32,9 +35,8 @@ interface Buyer {
 }
 
 export function makeExecutors(deps: {
-  nodesReader: () => Promise<{ id: string; city: string; country: string; price_per_request_usd: number }[]>;
+  nodesReader: () => Promise<{ id: string; city: string; country: string; proxy_url: string; price_per_request_usd: number }[]>;
   buyer: Buyer;
-  egressBaseUrl: string;
 }): Executors {
   return {
     async listNodes() {
@@ -45,11 +47,13 @@ export function makeExecutors(deps: {
       const b = await deps.buyer.getBalances();
       return { wallet: b.wallet.formatted, gatewayAvailable: b.gateway.formattedAvailable };
     },
-    async payRequest({ url }) {
+    async payRequest({ nodeId, url }) {
+      const node = (await deps.nodesReader()).find((n) => n.id === nodeId);
+      if (!node) throw new Error(`unknown node ${nodeId}`);
       const res = await deps.buyer.pay<{ status: number; bytes: number; egressIp: string }>(
-        `${deps.egressBaseUrl}?url=${encodeURIComponent(url)}`, { method: "POST" },
+        `${node.proxy_url}/egress?url=${encodeURIComponent(url)}`, { method: "POST" },
       );
-      return { status: res.data.status, bytes: res.data.bytes, egressIp: res.data.egressIp, amountMicroUsd: Number(res.amount), transaction: res.transaction };
+      return { status: res.data.status, bytes: res.data.bytes, egressIp: res.data.egressIp, amountMicroUsd: Number(res.amount), transaction: res.transaction, nodeId };
     },
   };
 }
