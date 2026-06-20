@@ -2,13 +2,14 @@
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase";
 import { formatUsd } from "./format";
+import { settlementUrl } from "@nanovpn/core";
 
 interface Event { id: string; seq: number; kind: string; content: any; }
 
 const fmtBytes = (n: number): string =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)} MB` : n >= 1_000 ? `${(n / 1_000).toFixed(1)} KB` : `${n} B`;
 
-export function AgentFeed({ runId }: { runId: string }) {
+export function AgentFeed({ runId, sellerAddress }: { runId: string; sellerAddress?: string }) {
   const [events, setEvents] = useState<Event[]>([]);
   useEffect(() => {
     const sb = supabaseBrowser();
@@ -60,6 +61,8 @@ export function AgentFeed({ runId }: { runId: string }) {
             <li key={e.id}>
               <span className="agent-amt">{formatUsd(e.content.amountMicroUsd)}</span>
               <span className="agent-pay__meta">{e.content.status} · {fmtBytes(e.content.bytes)} · {e.content.egressIp}</span>
+              <a className="agent-pay__view" target="_blank" rel="noreferrer"
+                 href={settlementUrl({ txHash: e.content.txHash, address: sellerAddress })}>view ↗</a>
             </li>
           ))}</ul>
         )}

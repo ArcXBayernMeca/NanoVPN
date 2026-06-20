@@ -276,6 +276,48 @@ a:hover { text-decoration: underline; }
   .agent-grid { grid-template-columns: 1fr; }
 }
 
+/* ---------- agent layout A (timeline + status rail) ---------- */
+.agent-layout {
+  display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start;
+}
+
+.agent-rail {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  padding: 18px 18px; display: flex; flex-direction: column; gap: 10px;
+  position: sticky; top: 18px;
+}
+
+.agent-rail__globe { height: 220px; position: relative; border-radius: 10px; overflow: hidden; }
+
+.agent-rail__node {
+  font-family: var(--font-mono); font-size: 12.5px; color: var(--ink);
+  padding: 6px 10px; background: var(--canvas); border: 1px solid var(--line);
+  border-radius: 999px; text-align: center;
+}
+
+.agent-rail__spend {
+  font-family: var(--font-mono); font-size: 12.5px; color: var(--muted);
+  font-variant-numeric: tabular-nums; text-align: right;
+}
+
+.agent-rail__status {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.07em;
+  text-transform: uppercase; border-radius: 999px; padding: 4px 11px;
+  border: 1px solid var(--green-line); color: var(--green); background: var(--green-tint);
+  text-align: center;
+}
+.agent-rail__status[data-status="running"] { color: var(--amber); background: #fff8ee; border-color: #f3d9a4; }
+.agent-rail__status[data-status="failed"],
+.agent-rail__status[data-status="budget_exhausted"] { color: #c0392b; background: #fdecea; border-color: #f3c7c1; }
+
+.agent-pay__view { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.agent-pay__view:hover { color: var(--green); }
+
+@media (max-width: 860px) {
+  .agent-layout { grid-template-columns: 1fr; }
+  .agent-rail { position: static; }
+}
+
 /* ---------- globe ---------- */
 .globe-wrap { position: relative; width: 100%; height: 540px; border-radius: 16px; overflow: hidden; background: radial-gradient(120% 120% at 50% 30%, #0b1a12 0%, #07120d 60%, #050d09 100%); border: 1px solid var(--line); }
 .globe-wrap canvas { display: block; }
