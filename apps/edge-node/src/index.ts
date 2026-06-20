@@ -6,7 +6,7 @@ import { SessionRegistry } from "./sessions";
 import { handleConnect } from "./proxy";
 import { handleSettle } from "./settle-endpoint";
 import { handleEgress } from "./egress-endpoint";
-import { microUsdForRequest } from "@nanovpn/core";
+import { microUsdForRequest, fetchSettlementTxHash } from "@nanovpn/core";
 import { streamUsage } from "./usage-sse";
 import { startSettlementLoop } from "./settlement-loop";
 import { fetchPublic } from "./fetch-public";
@@ -42,6 +42,9 @@ async function onSettled(sessionId: string, amountMicroUsd: number, settlementUu
     session_id: sessionId, settlement_uuid: settlementUuid, amount_micro_usd: amountMicroUsd,
     payer, payee: SELLER_ADDRESS, network: "eip155:5042002", status: "received",
   });
+  // Best-effort: upgrade the row with the on-chain tx hash once the batch is known.
+  const txHash = await fetchSettlementTxHash(settlementUuid);
+  if (txHash) await db.from("settlements").update({ tx_hash: txHash }).eq("settlement_uuid", settlementUuid);
   const e = registry.getById(sessionId);
   if (e) await db.from("sessions").update({ settled_micro_usd: e.meter.settledMicroUsd, spent_micro_usd: e.meter.spentMicroUsd }).eq("id", sessionId);
 }
