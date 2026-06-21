@@ -333,10 +333,10 @@ a:hover { text-decoration: underline; }
 .copilot-btn { width: 100%; } .copilot-msg { color: #7ff0aa; }
 
 /* ---------- stream controls ---------- */
-.stream-controls { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
-.seg__btn { font-family: var(--font-mono); font-size: 11px; text-transform: capitalize; padding: 6px 11px; background: var(--panel); color: var(--muted); border: none; cursor: pointer; }
-.seg__btn[data-on="true"] { background: var(--green-tint); color: var(--green); }
+.stream-controls { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.seg { display: flex; width: 100%; border: 1px solid rgba(255,255,255,.14); border-radius: 999px; overflow: hidden; }
+.seg__btn { flex: 1; text-align: center; font-family: var(--font-mono); font-size: 11px; text-transform: capitalize; padding: 7px 0; background: transparent; color: rgba(234,242,238,.65); border: none; cursor: pointer; }
+.seg__btn[data-on="true"] { background: var(--green-bright); color: #04130c; font-weight: 600; }
 
 /* ---------- agent run form ---------- */
 .run-form { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px; }
@@ -376,3 +376,16 @@ a:hover { text-decoration: underline; }
 .onb__facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-mono); font-size: 12.5px; }
 .onb__facts li { display: flex; gap: 12px; align-items: baseline; }
 .onb__facts b { width: 84px; color: var(--muted); font-weight: 500; flex-shrink: 0; }
+
+/* ---------- map rail dark text overrides ---------- */
+/* The map rail floats over the dark map — force readable light text for the
+   elements that use the light-theme dark inks. (White stat cards stay as-is.) */
+.maprail .eyebrow { color: rgba(234,242,238,.55); }
+.maprail .meter__value { color: #f1f7f4; }
+.maprail .meter__value .cents { color: var(--green-bright); }
+.maprail .tape__amt { color: #f1f7f4; }
+.maprail .tape__row { color: rgba(234,242,238,.85); }
+.maprail .tape__view { color: rgba(234,242,238,.5); }
+.maprail .tape__view:hover { color: var(--green-bright); }
+.maprail .hint { color: rgba(234,242,238,.6); }
+.maprail .node-card__name { color: #f1f7f4; }
