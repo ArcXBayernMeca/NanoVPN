@@ -4,6 +4,7 @@ import { geoNaturalEarth1, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import type { NodeListing } from "@nanovpn/core";
 import type { Intensity } from "@/lib/traffic";
+import { pinPositions } from "@/lib/map-view";
 
 export function WorldMap({ nodes, selectedId, connected, streaming, onSelect }: {
   nodes: NodeListing[]; selectedId: string | null; connected: boolean;
@@ -33,10 +34,8 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect }: 
   }, [w, h]);
   const path = useMemo(() => (projection ? geoPath(projection) : null), [projection]);
 
-  const project = (lat: number, lng: number): [number, number] | null =>
-    projection ? (projection([lng, lat]) as [number, number] | null) : null;
-
-  const sel = nodes.find((n) => n.id === selectedId) ?? null;
+  const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+  const pins = useMemo(() => (projection ? pinPositions(nodes, projection) : []), [nodes, projection]);
 
   return (
     <div ref={wrapRef} className="wmap">
@@ -46,12 +45,12 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect }: 
             {land.map((f, i) => (
               <path key={i} d={path(f) ?? ""} className="wmap__land" />
             ))}
-            {nodes.map((n) => {
-              const p = project(n.geo.lat, n.geo.lng); if (!p) return null;
-              const on = n.id === selectedId;
+            {pins.map(({ id, x, y }) => {
+              const n = nodeById.get(id); if (!n) return null;
+              const on = id === selectedId;
               return (
-                <g key={n.id} transform={`translate(${p[0]},${p[1]})`}
-                   className={`wmap__pin ${on ? "is-on" : ""}`} onClick={() => onSelect(n.id)}>
+                <g key={id} transform={`translate(${x},${y})`}
+                   className={`wmap__pin ${on ? "is-on" : ""}`} onClick={() => onSelect(id)}>
                   <circle className="wmap__halo" r={on ? 12 : 8} />
                   <circle className="wmap__dot" r={on ? 5 : 3.5} />
                   <title>{n.geo.city} · ${n.pricePerGbUsd}/GB</title>

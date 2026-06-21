@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
+import { geoNaturalEarth1 } from "d3-geo";
 import { WorldMap } from "../components/WorldMap";
+import { pinPositions } from "@/lib/map-view";
 
 // d3-geo uses ResizeObserver — stub it in jsdom
 globalThis.ResizeObserver = class {
@@ -36,5 +38,21 @@ describe("WorldMap", () => {
         streaming="medium" onSelect={() => {}} />
     );
     expect(container.querySelector(".wmap")).toBeTruthy();
+  });
+});
+
+describe("pinPositions", () => {
+  it("projects one pin per node at finite screen coords", () => {
+    const projection = geoNaturalEarth1().fitExtent([[0, 0], [800, 600]], { type: "Sphere" } as any);
+    const testNodes = [
+      { id: "a", geo: { lat: 35.68, lng: 139.69, city: "Tokyo", country: "JP" }, pricePerGbUsd: 1, pricePerRequestUsd: 0.001, operatorAddress: "", proxyUrl: "", settleUrl: "" },
+      { id: "b", geo: { lat: 19.07, lng: 72.88, city: "Mumbai", country: "IN" }, pricePerGbUsd: 1, pricePerRequestUsd: 0.001, operatorAddress: "", proxyUrl: "", settleUrl: "" },
+    ] as any;
+    const pins = pinPositions(testNodes, projection);
+    expect(pins.map((p) => p.id)).toEqual(["a", "b"]);
+    for (const p of pins) {
+      expect(Number.isFinite(p.x)).toBe(true);
+      expect(Number.isFinite(p.y)).toBe(true);
+    }
   });
 });
