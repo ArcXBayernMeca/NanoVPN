@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { GlobeMap } from "@/components/GlobeMap";
+import { WorldMap } from "@/components/WorldMap";
 import { MapRail } from "@/components/MapRail";
 import { useTrafficStream, type Intensity } from "@/lib/traffic";
 import { useWallet } from "@/components/WalletProvider";
@@ -57,7 +57,7 @@ export default function Page() {
   return (
     <div className="map-stage">
       <div className="map-globe">
-        <GlobeMap nodes={nodes} selectedId={selected} connected={!!session}
+        <WorldMap nodes={nodes} selectedId={selected} connected={!!session}
           streaming={streaming ? intensity : null} onSelect={(id) => { if (!session) setSelected(id); }} />
       </div>
       <MapRail node={node} signedIn={signedIn} session={session} connecting={connecting}

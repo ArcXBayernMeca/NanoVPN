@@ -17,10 +17,17 @@ export function intervalForIntensity(i: Intensity): number {
 export function useTrafficStream(sessionId: string | null, intensity: Intensity, enabled: boolean): void {
   useEffect(() => {
     if (!enabled || !sessionId) return;
-    let stopped = false;
-    const fire = () => { if (!stopped) void fetch(`/api/browse?session=${sessionId}`).catch(() => {}); };
-    fire(); // immediate first pull so payments start without waiting a full interval
-    const id = setInterval(fire, intervalForIntensity(intensity));
-    return () => { stopped = true; clearInterval(id); };
+    const ctrl = new AbortController();
+    let inFlight = false;
+    const fire = async () => {
+      if (inFlight || ctrl.signal.aborted) return; // never overlap → stop is immediate
+      inFlight = true;
+      try { await fetch(`/api/browse?session=${sessionId}`, { signal: ctrl.signal }); }
+      catch { /* aborted or soft-fail */ }
+      finally { inFlight = false; }
+    };
+    void fire(); // immediate first pull
+    const id = setInterval(() => void fire(), intervalForIntensity(intensity));
+    return () => { ctrl.abort(); clearInterval(id); };
   }, [sessionId, intensity, enabled]);
 }

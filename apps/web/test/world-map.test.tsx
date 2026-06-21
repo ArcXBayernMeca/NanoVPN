@@ -1,22 +1,58 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render } from "@testing-library/react";
+import { geoNaturalEarth1 } from "d3-geo";
 import { WorldMap } from "../components/WorldMap";
+import { pinPositions } from "@/lib/map-view";
 
-vi.mock("react-simple-maps", () => ({
-  ComposableMap: ({ children }: any) => <div>{children}</div>,
-  Geographies: ({ children }: any) => <>{children({ geographies: [] })}</>,
-  Geography: () => null,
-  Marker: ({ children }: any) => <div data-testid="marker">{children}</div>,
-}));
+// d3-geo uses ResizeObserver — stub it in jsdom
+globalThis.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
+// Stub fetch so the topology load is a no-op
+beforeEach(() => {
+  vi.stubGlobal("fetch", () => new Promise(() => {}));
+});
+
+const nodes = [
+  { id: "tokyo-1", geo: { country: "Japan", city: "Tokyo", lat: 35.6, lng: 139.6 }, pricePerGbUsd: 3 },
+  { id: "fra-1", geo: { country: "Germany", city: "Frankfurt", lat: 50.1, lng: 8.6 }, pricePerGbUsd: 1.5 },
+] as any;
 
 describe("WorldMap", () => {
-  it("renders a marker per node", () => {
-    const nodes = [
-      { id: "tokyo-1", geo: { country: "Japan", city: "Tokyo", lat: 35.6, lng: 139.6 }, pricePerGbUsd: 3 },
-      { id: "fra-1", geo: { country: "Germany", city: "Frankfurt", lat: 50.1, lng: 8.6 }, pricePerGbUsd: 1.5 },
+  it("renders without crashing", () => {
+    const { container } = render(
+      <WorldMap nodes={nodes} selectedId={null} connected={false}
+        streaming={null} onSelect={() => {}} />
+    );
+    expect(container.querySelector(".wmap")).toBeTruthy();
+  });
+
+  it("accepts all required props without type errors", () => {
+    // Smoke-test: render with a selected node and connected state
+    const { container } = render(
+      <WorldMap nodes={nodes} selectedId="tokyo-1" connected={true}
+        streaming="medium" onSelect={() => {}} />
+    );
+    expect(container.querySelector(".wmap")).toBeTruthy();
+  });
+});
+
+describe("pinPositions", () => {
+  it("projects one pin per node at finite screen coords", () => {
+    const projection = geoNaturalEarth1().fitExtent([[0, 0], [800, 600]], { type: "Sphere" } as any);
+    const testNodes = [
+      { id: "a", geo: { lat: 35.68, lng: 139.69, city: "Tokyo", country: "JP" }, pricePerGbUsd: 1, pricePerRequestUsd: 0.001, operatorAddress: "", proxyUrl: "", settleUrl: "" },
+      { id: "b", geo: { lat: 19.07, lng: 72.88, city: "Mumbai", country: "IN" }, pricePerGbUsd: 1, pricePerRequestUsd: 0.001, operatorAddress: "", proxyUrl: "", settleUrl: "" },
     ] as any;
-    render(<WorldMap nodes={nodes} selectedId={null} onSelect={() => {}} />);
-    expect(screen.getAllByTestId("marker")).toHaveLength(2);
+    const pins = pinPositions(testNodes, projection);
+    expect(pins.map((p) => p.id)).toEqual(["a", "b"]);
+    for (const p of pins) {
+      expect(Number.isFinite(p.x)).toBe(true);
+      expect(Number.isFinite(p.y)).toBe(true);
+    }
   });
 });

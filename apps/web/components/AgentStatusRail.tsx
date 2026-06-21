@@ -1,5 +1,5 @@
 "use client";
-import { GlobeMap } from "./GlobeMap";
+import { WorldMap } from "./WorldMap";
 import { formatUsd } from "./format";
 import type { NodeListing } from "@nanovpn/core";
 
@@ -12,7 +12,7 @@ export function AgentStatusRail({ nodeId, spentMicroUsd, budgetMicroUsd, status,
     <aside className="agent-rail">
       <span className="eyebrow">Chosen node</span>
       <div className="agent-rail__globe">
-        <GlobeMap nodes={nodes} selectedId={nodeId} connected={!!nodeId} streaming={null} onSelect={() => {}} />
+        <WorldMap nodes={nodes} selectedId={nodeId} connected={!!nodeId} streaming={null} onSelect={() => {}} />
       </div>
       <div className="agent-rail__node">{chosen ? `● ${chosen.geo.city}, ${chosen.geo.country}` : "choosing…"}</div>
       <span className="eyebrow">Budget</span>

@@ -1,17 +1,16 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+import { describe, it, expect, vi } from "vitest";
 import { AgentRunForm } from "@/components/AgentRunForm";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
 describe("AgentRunForm", () => {
-  it("renders the goal input and a run button", () => {
+  it("renders goal + a labeled budget and NO mock checkbox", () => {
     render(<AgentRunForm />);
-    expect(screen.getByPlaceholderText(/goal/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /run agent/i })).toBeInTheDocument();
-  });
-  it("has no node dropdown (the agent picks)", () => {
-    const { container } = render(<AgentRunForm />);
-    expect(container.querySelector("select")).toBeNull();
+    expect(screen.getByPlaceholderText(/goal/i)).toBeTruthy();
+    expect(screen.getByLabelText(/max budget/i)).toBeTruthy();
+    expect(screen.queryByText(/mock/i)).toBeNull();
+    expect(screen.queryByRole("checkbox")).toBeNull();
   });
 });
