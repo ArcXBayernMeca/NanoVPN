@@ -318,9 +318,17 @@ a:hover { text-decoration: underline; }
   .agent-rail { position: static; }
 }
 
-/* ---------- globe ---------- */
-.globe-wrap { position: relative; width: 100%; height: 540px; border-radius: 16px; overflow: hidden; background: radial-gradient(120% 120% at 50% 30%, #0b1a12 0%, #07120d 60%, #050d09 100%); border: 1px solid var(--line); }
-.globe-wrap canvas { display: block; }
+/* ---------- flat SVG world map (d3-geo) ---------- */
+.wmap { position: absolute; inset: 0; background: radial-gradient(130% 130% at 50% 25%, #0a1410 0%, #060d0a 70%); cursor: grab; }
+.wmap:active { cursor: grabbing; }
+.wmap__svg { display: block; }
+.wmap__land { fill: #16211b; stroke: #25342b; stroke-width: 0.5; }
+.wmap__pin { cursor: pointer; }
+.wmap__dot { fill: var(--green-bright); }
+.wmap__halo { fill: var(--green-bright); opacity: .18; }
+.wmap__pin.is-on .wmap__dot { fill: #aaffcc; }
+.wmap__pin.is-on .wmap__halo { opacity: .3; animation: wmapPulse 1.6s ease-out infinite; }
+@keyframes wmapPulse { 0% { r: 6; opacity: .45 } 100% { r: 16; opacity: 0 } }
 
 /* ---------- map layout A — full-bleed stage + glass rail ---------- */
 .sitenav { --nav-h: 56px; }
