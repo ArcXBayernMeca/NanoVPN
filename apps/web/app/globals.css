@@ -341,10 +341,11 @@ a:hover { text-decoration: underline; }
 /* ---------- agent run form ---------- */
 .run-form { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px; }
 .run-form__goal { width: 100%; font-family: var(--font-body); font-size: 14px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; }
-.run-form__row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.run-form__row { display: flex; align-items: flex-end; gap: 12px; }
 .run-form__row select, .run-form__budget { font-family: var(--font-mono); font-size: 12.5px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; }
 .run-form__budget { width: 92px; }
-.run-form__mock { font-family: var(--font-mono); font-size: 12px; color: var(--muted); display: inline-flex; gap: 5px; align-items: center; }
+.run-form__field { display: flex; flex-direction: column; gap: 4px; }
+.run-form__field span { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 
 /* ---------- developers page (legacy classes — kept for safety) ---------- */
 .dev-page { max-width: 880px; margin: 0 auto; padding: 32px 24px; }
