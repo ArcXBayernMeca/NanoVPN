@@ -1,3 +1,5 @@
+import { fetchSettlementTxHash } from "@nanovpn/core";
+
 type DbLike = {
   from(table: string): {
     insert(row: unknown): unknown;
@@ -9,9 +11,10 @@ export interface RunWriter {
   runId: string;
   reasoning(text: string): Promise<void>;
   toolCall(name: string, input: unknown): Promise<void>;
-  payment(p: { amountMicroUsd: number; transaction: string; status: number; bytes: number; egressIp: string }): Promise<void>;
+  payment(p: { amountMicroUsd: number; transaction: string; status: number; bytes: number; egressIp: string; nodeId: string }): Promise<void>;
   error(message: string): Promise<void>;
   finish(status: "succeeded" | "failed" | "budget_exhausted", result: string): Promise<void>;
+  setNode(nodeId: string): Promise<void>;
 }
 
 export async function startRun(
@@ -23,6 +26,7 @@ export async function startRun(
   });
   let seq = 0;
   let spent = 0;
+  let nodeSet = false;
 
   const event = async (kind: string, content: unknown) => {
     seq += 1;
@@ -34,7 +38,8 @@ export async function startRun(
     reasoning: (text) => event("reasoning", { text }),
     toolCall: (name, input) => event("tool_call", { name, input }),
     async payment(p) {
-      await event("payment", p);
+      const txHash = await fetchSettlementTxHash(p.transaction);
+      await event("payment", { ...p, txHash });
       spent += p.amountMicroUsd;
       await db.from("agent_runs").update({ spent_micro_usd: spent }).eq("id", opts.runId);
     },
@@ -42,6 +47,11 @@ export async function startRun(
     async finish(status, result) {
       await event("result", { result });
       await db.from("agent_runs").update({ status, result, ended_at: new Date().toISOString() }).eq("id", opts.runId);
+    },
+    async setNode(nodeId) {
+      if (nodeSet) return;
+      nodeSet = true;
+      await db.from("agent_runs").update({ node_id: nodeId }).eq("id", opts.runId);
     },
   };
 }

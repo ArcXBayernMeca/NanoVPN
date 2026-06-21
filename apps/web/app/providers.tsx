@@ -4,11 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { config } from "@/lib/wagmi";
 import { Toaster } from "sonner";
 import type { ReactNode } from "react";
+import { WalletProvider } from "@/components/WalletProvider";
 const qc = new QueryClient();
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config}>
-      <QueryClientProvider client={qc}>{children}<Toaster /></QueryClientProvider>
+      <QueryClientProvider client={qc}><WalletProvider>{children}</WalletProvider><Toaster /></QueryClientProvider>
     </WagmiProvider>
   );
 }

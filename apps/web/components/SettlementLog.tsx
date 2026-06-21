@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase";
-import { ARC } from "@nanovpn/core";
+import { settlementUrl } from "@nanovpn/core";
 import { formatUsd } from "./format";
 
-interface Row { id: string; settlement_uuid: string; amount_micro_usd: number; status: string; tx_hash: string | null; }
+interface Row { id: string; settlement_uuid: string; amount_micro_usd: number; status: string; tx_hash: string | null; payee: string; }
 
 export function SettlementLog({ sessionId }: { sessionId: string }) {
   const [rows, setRows] = useState<Row[]>([]);
@@ -34,7 +34,7 @@ export function SettlementLog({ sessionId }: { sessionId: string }) {
               <span className="tape__status">{r.status}</span>
               <a
                 className="tape__view"
-                href={r.tx_hash ? `${ARC.explorer}/tx/${r.tx_hash}` : `${ARC.facilitator}/v1/x402/transfers/${r.settlement_uuid}`}
+                href={settlementUrl({ txHash: r.tx_hash, address: r.payee })}
                 target="_blank"
                 rel="noreferrer"
               >

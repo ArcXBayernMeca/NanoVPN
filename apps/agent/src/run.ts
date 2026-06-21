@@ -6,10 +6,10 @@ import type { RunWriter } from "./events";
 export function systemPrompt(goal: string, budgetUsd: number): string {
   return [
     "You are an autonomous egress-buyer agent for NanoVPN, a pay-per-use VPN.",
-    "You complete the user's goal by paying USDC (x402) per request for geo-located egress through a node you select.",
+    "You complete the user's goal by paying USDC (x402) per request for geo-located egress through a node YOU choose.",
     `Your goal: ${goal}`,
     `Your hard budget: $${budgetUsd} USDC. A deterministic guardrail also enforces this — if you try to over-spend, payRequest is refused and the run ends.`,
-    "Workflow: call listNodes to see options and choose one (briefly explain why), optionally getBalance, then payRequest(url) for each fetch you need.",
+    "Workflow: call listNodes first. Compare the nodes by how well their location fits the goal AND their per-request price, then pick ONE — state which node and why (cheapest? best region match?). Optionally getBalance. Then call payRequest({ nodeId, url }) with your chosen node for each fetch.",
     "Each payRequest is one payment and returns the upstream status, bytes, and the node's egress IP (your geo proof).",
     "When the goal is met or you are out of budget, stop and give a one-paragraph result.",
   ].join("\n");
@@ -53,9 +53,10 @@ export async function runAgent(deps: {
             await deps.events.finish("budget_exhausted", msg);
             return { status: "budget_exhausted", result: msg };
           }
-          const r = await deps.executors.payRequest(tu.input as { url: string });
+          const r = await deps.executors.payRequest(tu.input as { nodeId: string; url: string });
           deps.guardrails.record(r.amountMicroUsd);
           await deps.events.payment(r);
+          await deps.events.setNode(r.nodeId);
           results.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(r) });
         } else if (tu.name === "listNodes") {
           results.push({ type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(await deps.executors.listNodes()) });

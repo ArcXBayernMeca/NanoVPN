@@ -1,4 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
+
+vi.mock("@nanovpn/core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@nanovpn/core")>();
+  return { ...actual, fetchSettlementTxHash: vi.fn().mockResolvedValue(null) };
+});
+
 import { startRun } from "../src/events";
 
 function fakeDb() {
@@ -23,7 +29,7 @@ describe("event writer", () => {
     const run = await startRun(db as any, { runId: "r1", goal: "check JP price", budgetMicroUsd: 500000, nodeId: "tokyo-1" });
     await run.reasoning("I'll use tokyo-1");
     await run.toolCall("payRequest", { url: "https://x" });
-    await run.payment({ amountMicroUsd: 1000, transaction: "tx1", status: 200, bytes: 2048, egressIp: "203.0.113.7" });
+    await run.payment({ amountMicroUsd: 1000, transaction: "tx1", status: 200, bytes: 2048, egressIp: "203.0.113.7", nodeId: "tokyo-1" });
     await run.finish("succeeded", "done");
 
     const runRow = db.inserts.find((i) => i.table === "agent_runs")!.row;
@@ -39,5 +45,15 @@ describe("event writer", () => {
     expect(spentUpdate?.row.spent_micro_usd).toBe(1000);
     const finishUpdate = db.updates.find((u) => u.table === "agent_runs" && u.row.status === "succeeded");
     expect(finishUpdate).toBeTruthy();
+  });
+
+  it("setNode is idempotent — issues only one UPDATE for node_id even when called twice", async () => {
+    const db = fakeDb();
+    const run = await startRun(db as any, { runId: "r2", goal: "idempotency check", budgetMicroUsd: 100000, nodeId: null });
+    await run.setNode("tokyo-1");
+    await run.setNode("tokyo-1"); // second call must be a no-op
+    const nodeUpdates = db.updates.filter((u) => u.table === "agent_runs" && "node_id" in u.row);
+    expect(nodeUpdates).toHaveLength(1);
+    expect(nodeUpdates[0].row.node_id).toBe("tokyo-1");
   });
 });
