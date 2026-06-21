@@ -20,6 +20,11 @@ describe("POST /api/agent/run", () => {
     const res = await POST(req({ goal: "g", budgetUsd: 0 }));
     expect(res.status).toBe(400);
   });
+  it("400 when budget exceeds the server-side ceiling (anti-drain)", async () => {
+    const res = await POST(req({ goal: "g", budgetUsd: 9999 }));
+    expect(res.status).toBe(400);
+    expect(prepareRun).not.toHaveBeenCalled();
+  });
   it("returns the runId from prepareRun", async () => {
     prepareRun.mockResolvedValueOnce({ runId: "run-123", run: async () => ({ status: "succeeded", result: "ok" }) });
     const res = await POST(req({ goal: "fetch a file", budgetUsd: 0.02, mock: true }));
