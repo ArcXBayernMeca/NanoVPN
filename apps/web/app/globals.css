@@ -322,7 +322,7 @@ a:hover { text-decoration: underline; }
 .wmap { position: absolute; inset: 0; background: radial-gradient(130% 130% at 50% 25%, #0a1410 0%, #060d0a 70%); cursor: grab; }
 .wmap:active { cursor: grabbing; }
 .wmap__svg { display: block; }
-.wmap__land { fill: #16211b; stroke: #25342b; stroke-width: 0.5; }
+.wmap__land { fill: #1c2a23; stroke: #33473b; stroke-width: 0.6; }
 .wmap__pin { cursor: pointer; }
 .wmap__dot { fill: var(--green-bright); }
 .wmap__halo { fill: var(--green-bright); opacity: .18; }

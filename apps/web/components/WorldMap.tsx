@@ -37,8 +37,9 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect }: 
   const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const pins = useMemo(() => (projection ? pinPositions(nodes, projection) : []), [nodes, projection]);
 
-  // Pan/zoom state
-  const [view, setView] = useState<View>({ k: 1.6, x: 0, y: 0 });
+  // Pan/zoom state. Default k=1 shows the whole world centered (fitExtent fills the
+  // viewport at scale 1, so every node pin is visible); the user zooms in from there.
+  const [view, setView] = useState<View>({ k: 1, x: 0, y: 0 });
   const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -82,7 +83,7 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect }: 
             {connected && sel && (() => {
               const a = projection([0, 20]) as [number, number] | null;
               const b = projection([sel.geo.lng, sel.geo.lat]) as [number, number] | null;
-              return a && b ? <line className={`wmap__link ${streaming ? "is-live" : ""}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} vectorEffect="non-scaling-stroke" /> : null;
+              return a && b ? <line className={`wmap__link${streaming ? " is-live" : ""}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} vectorEffect="non-scaling-stroke" /> : null;
             })()}
             {pins.map(({ id, x, y }) => {
               const n = nodeById.get(id); if (!n) return null;
@@ -99,7 +100,7 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect }: 
           </g>
         </svg>
       )}
-      <div className="wmap__zoom">
+      <div className="wmap__zoom" onPointerDown={(e) => e.stopPropagation()}>
         <button aria-label="zoom in" onClick={() => zoomBy(1.4)}>+</button>
         <button aria-label="zoom out" onClick={() => zoomBy(1 / 1.4)}>−</button>
       </div>
