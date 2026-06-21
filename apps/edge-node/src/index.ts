@@ -79,4 +79,8 @@ function readJson(req: http.IncomingMessage): Promise<any> {
 }
 
 startSettlementLoop(registry, buyer, `${SELF}/settle`);
-server.listen(PORT, () => { console.log(`[edge-node] http+proxy on ${PORT}`); void resolveEgressIp(); });
+server.on("error", (e) => console.error("[edge-node] server error:", e));
+// Bind 0.0.0.0 explicitly (Node would otherwise bind IPv6-only, which Fly's proxy can't
+// reach) and log on stderr so the line appears immediately in `fly logs` (stdout is
+// block-buffered in the container, which made a healthy boot look like a hang).
+server.listen(PORT, "0.0.0.0", () => { console.error(`[edge-node] http+proxy on ${PORT}`); void resolveEgressIp(); });
