@@ -21,3 +21,15 @@ export function viewCenteredOn(px: number, py: number, w: number, h: number, k: 
   const kk = clampK(k);
   return { k: kk, x: w / 2 - px * kk, y: h / 2 - py * kk };
 }
+
+/** View centered on a geo location (lat/lng) at zoom k, or null if it doesn't project. */
+export function viewForLocation(
+  loc: { lat: number; lng: number },
+  projection: GeoProjection,
+  w: number,
+  h: number,
+  k = 3,
+): View | null {
+  const p = projection([loc.lng, loc.lat]);
+  return p ? viewCenteredOn(p[0], p[1], w, h, k) : null;
+}

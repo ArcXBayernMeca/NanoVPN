@@ -330,6 +330,10 @@ a:hover { text-decoration: underline; }
 .wmap__pin.is-on .wmap__halo { opacity: .3; animation: wmapPulse 1.6s ease-out infinite; }
 @keyframes wmapPulse { 0% { r: 6; opacity: .45 } 100% { r: 16; opacity: 0 } }
 
+/* user "you are here" marker */
+.wmap__me-dot { fill: #cfe9ff; stroke: #ffffff; stroke-width: 1; }
+.wmap__me-halo { fill: #8ec9ff; opacity: .22; animation: wmapPulse 1.8s ease-out infinite; }
+
 /* ---------- map layout A — full-bleed stage + glass rail ---------- */
 .sitenav { --nav-h: 56px; }
 .map-stage { position: relative; height: calc(100vh - var(--nav-h, 56px)); width: 100%; overflow: hidden; }
