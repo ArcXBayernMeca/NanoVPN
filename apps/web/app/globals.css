@@ -420,3 +420,14 @@ a:hover { text-decoration: underline; }
 
 .maprail__banner { margin-top: 10px; padding: 10px; border: 1px solid rgba(217,138,43,.4); border-radius: 10px; background: rgba(217,138,43,.08); }
 .maprail__banner .btn--row { margin-top: 8px; }
+
+/* ---------- landing ---------- */
+.landing { position: relative; height: calc(100vh - var(--nav-h, 56px)); width: 100%; overflow: hidden; display: grid; place-items: center; }
+.landing__bg { position: absolute; inset: 0; }
+.landing__bg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 50%, rgba(6,13,10,0) 30%, rgba(6,13,10,.85) 100%); }
+.landing__hero { position: relative; z-index: 1; text-align: center; padding: 0 24px; animation: landingIn .7s ease-out both; }
+.landing__title { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.04em; font-size: clamp(44px, 9vw, 104px); color: #f1f7f4; margin: 0; }
+.landing__title b { color: var(--green-bright); }
+.landing__tag { font-size: clamp(15px, 2.4vw, 20px); color: rgba(234,242,238,.78); margin: 14px 0 30px; }
+.landing__cta { width: auto; padding: 14px 34px; font-size: 16px; border-radius: 12px; box-shadow: 0 10px 40px rgba(21,214,135,.35); }
+@keyframes landingIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
