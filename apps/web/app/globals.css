@@ -441,3 +441,6 @@ a:hover { text-decoration: underline; }
 .sproof__detail dd { margin: 0; color: var(--ink-2); }
 .maprail .sproof__detail dd { color: rgba(234,242,238,.8); }
 .maprail .sproof__detail dt { color: rgba(234,242,238,.5); }
+
+.tape__anchor { display: inline-block; margin-top: 8px; font-family: var(--font-mono); font-size: 11px; }
+.maprail .tape__anchor { color: var(--green-bright); }
