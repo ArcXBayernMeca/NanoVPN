@@ -1,11 +1,13 @@
 "use client";
 import { WorldMap } from "./WorldMap";
 import { formatUsd } from "./format";
+import { useAgentRunStatus } from "@/lib/use-agent-run-status";
 import type { NodeListing } from "@nanovpn/core";
 
-export function AgentStatusRail({ nodeId, spentMicroUsd, budgetMicroUsd, status, nodes }: {
-  nodeId: string | null; spentMicroUsd: number; budgetMicroUsd: number; status: string; nodes: NodeListing[];
+export function AgentStatusRail({ runId, initialNodeId, initialSpentMicroUsd, budgetMicroUsd, initialStatus, nodes }: {
+  runId: string; initialNodeId: string | null; initialSpentMicroUsd: number; budgetMicroUsd: number; initialStatus: string; nodes: NodeListing[];
 }) {
+  const { nodeId, spentMicroUsd, status } = useAgentRunStatus(runId, { nodeId: initialNodeId, spentMicroUsd: initialSpentMicroUsd, status: initialStatus });
   const pct = budgetMicroUsd > 0 ? Math.min(100, Math.round((spentMicroUsd / budgetMicroUsd) * 100)) : 0;
   const chosen = nodes.find((n) => n.id === nodeId) ?? null;
   return (

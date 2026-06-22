@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase";
-import { settlementUrl } from "@nanovpn/core";
+import { explorerAddr } from "@nanovpn/core";
 import { formatUsd } from "./format";
+import { SettlementProof } from "./SettlementProof";
 
-interface Row { id: string; settlement_uuid: string; amount_micro_usd: number; status: string; tx_hash: string | null; payee: string; }
+interface Row { id: string; settlement_uuid: string; amount_micro_usd: number; status: string; tx_hash: string | null; payer: string; payee: string; network: string; }
 
 export function SettlementLog({ sessionId }: { sessionId: string }) {
   const [rows, setRows] = useState<Row[]>([]);
@@ -22,27 +23,25 @@ export function SettlementLog({ sessionId }: { sessionId: string }) {
     return () => { sb.removeChannel(channel); };
   }, [sessionId]);
 
+  const payer = rows[0]?.payer;
   return (
     <div className="tape">
       {rows.length === 0 ? (
         <p className="tape__empty">Settlements post here as your balance streams out — roughly every $0.01 or 10 seconds.</p>
       ) : (
-        <ul className="tape__list">
-          {rows.map((r) => (
-            <li className="tape__row" key={r.id}>
-              <span className="tape__amt">{formatUsd(r.amount_micro_usd)}</span>
-              <span className="tape__status">{r.status}</span>
-              <a
-                className="tape__view"
-                href={settlementUrl({ txHash: r.tx_hash, address: r.payee })}
-                target="_blank"
-                rel="noreferrer"
-              >
-                view ↗
-              </a>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="tape__list">
+            {rows.map((r) => (
+              <li className="tape__row" key={r.id}>
+                <span className="tape__amt">{formatUsd(r.amount_micro_usd)}</span>
+                <SettlementProof uuid={r.settlement_uuid} amountMicroUsd={r.amount_micro_usd} payer={r.payer} payee={r.payee} network={r.network} />
+              </li>
+            ))}
+          </ul>
+          {payer && (
+            <a className="tape__anchor" href={explorerAddr(payer)} target="_blank" rel="noreferrer">Payer wallet on Arc ↗</a>
+          )}
+        </>
       )}
     </div>
   );
