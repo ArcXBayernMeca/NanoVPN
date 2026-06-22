@@ -5,11 +5,17 @@ import { config } from "@/lib/wagmi";
 import { Toaster } from "sonner";
 import type { ReactNode } from "react";
 import { WalletProvider } from "@/components/WalletProvider";
+import { LocationProvider } from "@/lib/location";
 const qc = new QueryClient();
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config}>
-      <QueryClientProvider client={qc}><WalletProvider>{children}</WalletProvider><Toaster /></QueryClientProvider>
+      <QueryClientProvider client={qc}>
+        <WalletProvider>
+          <LocationProvider>{children}</LocationProvider>
+        </WalletProvider>
+        <Toaster />
+      </QueryClientProvider>
     </WagmiProvider>
   );
 }
