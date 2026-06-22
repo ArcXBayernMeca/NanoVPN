@@ -38,12 +38,12 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, us
   const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const pins = useMemo(() => (projection ? pinPositions(nodes, projection) : []), [nodes, projection]);
 
-  // Serialize the ~177 country paths only when the projection changes — NOT on every
-  // pan/zoom. Panning/zooming only mutates the <g transform>, so these stable element
-  // refs let React skip re-reconciling the whole world each frame (avoids a re-render
-  // storm that can crash the tab).
-  const landPaths = useMemo(
-    () => (path ? land.map((f, i) => <path key={i} d={path(f) ?? ""} className="wmap__land" vectorEffect="non-scaling-stroke" />) : null),
+  // Render the whole world as ONE combined path (not ~177 separate ones) and WITHOUT
+  // non-scaling-stroke, so the GPU repaints far less geometry per pan/zoom frame. The
+  // 177-element + per-frame stroke-recompute version crashed Chromium's GPU process
+  // under sustained drag. d3-geo serializes a FeatureCollection into a single `d`.
+  const landPath = useMemo(
+    () => (path && land.length ? path({ type: "FeatureCollection", features: land } as any) : null),
     [land, path],
   );
 
@@ -112,7 +112,7 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, us
       {projection && path && (
         <svg className="wmap__svg" width={w} height={h}>
           <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
-            {landPaths}
+            {landPath && <path d={landPath} className="wmap__land" />}
             {connected && sel && (() => {
               const a = projection(userLocation ? [userLocation.lng, userLocation.lat] : [0, 20]) as [number, number] | null;
               const b = projection([sel.geo.lng, sel.geo.lat]) as [number, number] | null;
