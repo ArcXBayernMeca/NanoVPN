@@ -431,3 +431,13 @@ a:hover { text-decoration: underline; }
 .landing__tag { font-size: clamp(15px, 2.4vw, 20px); color: rgba(234,242,238,.78); margin: 14px 0 30px; }
 .landing__cta { width: auto; padding: 14px 34px; font-size: 16px; border-radius: 12px; box-shadow: 0 10px 40px rgba(21,214,135,.35); }
 @keyframes landingIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+/* ---------- settlement proof ---------- */
+.sproof__toggle { background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-mono); font-size: 11.5px; color: var(--green); }
+.sproof__toggle:hover { color: var(--green-bright); }
+.sproof__detail { margin: 6px 0 2px; display: grid; gap: 3px; font-family: var(--font-mono); font-size: 11px; }
+.sproof__detail > div { display: flex; justify-content: space-between; gap: 10px; }
+.sproof__detail dt { color: var(--muted); }
+.sproof__detail dd { margin: 0; color: var(--ink-2); }
+.maprail .sproof__detail dd { color: rgba(234,242,238,.8); }
+.maprail .sproof__detail dt { color: rgba(234,242,238,.5); }
