@@ -319,7 +319,7 @@ a:hover { text-decoration: underline; }
 }
 
 /* ---------- flat SVG world map (d3-geo) ---------- */
-.wmap { position: absolute; inset: 0; background: radial-gradient(130% 130% at 50% 25%, #0a1410 0%, #060d0a 70%); cursor: grab; }
+.wmap { position: absolute; inset: 0; background: radial-gradient(130% 130% at 50% 25%, #0a1410 0%, #060d0a 70%); cursor: grab; touch-action: none; }
 .wmap:active { cursor: grabbing; }
 .wmap__svg { display: block; }
 .wmap__land { fill: #1c2a23; stroke: #33473b; stroke-width: 0.6; }
