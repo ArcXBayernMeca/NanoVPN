@@ -30,3 +30,15 @@ describe("MapRail location banner", () => {
     expect(screen.queryByText(/location off/i)).toBeNull();
   });
 });
+
+describe("MapRail locating hint", () => {
+  it("shows the locating hint when locating=true and no session/node", () => {
+    render(<MapRail {...base} locating />);
+    expect(screen.getByText(/locating/i)).toBeTruthy();
+  });
+
+  it("does not show the locating hint when locating is falsy", () => {
+    render(<MapRail {...base} />);
+    expect(screen.queryByText(/locating/i)).toBeNull();
+  });
+});

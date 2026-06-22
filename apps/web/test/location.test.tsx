@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import { LocationProvider, useLocation } from "@/lib/location";
 
@@ -21,6 +21,7 @@ function mockGeo(impl: (ok: PositionCallback, err: PositionErrorCallback) => voi
 }
 
 beforeEach(() => { vi.restoreAllMocks(); });
+afterEach(() => { delete (navigator as any).geolocation; });
 
 describe("LocationProvider", () => {
   it("resolves granted with coords on success", async () => {

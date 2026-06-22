@@ -71,6 +71,7 @@ export default function MapPage() {
       <MapRail node={node} signedIn={signedIn} session={session} connecting={connecting}
         streaming={streaming} intensity={intensity} copilotMsg={copilotMsg}
         locationDenied={status === "denied" || status === "unavailable"}
+        locating={status === "prompting"}
         onRetryLocation={() => void request()}
         onConnect={connect} onDisconnect={disconnect} onToggleStream={() => setStreaming((s) => !s)}
         onIntensity={setIntensity} onCopilot={copilotPick} />

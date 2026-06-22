@@ -8,7 +8,7 @@ import type { Intensity } from "@/lib/traffic";
 export function MapRail(props: {
   node: NodeListing | null; signedIn: string | null; session: { sessionId: string } | null;
   connecting: boolean; streaming: boolean; intensity: Intensity; copilotMsg: string | null;
-  locationDenied?: boolean; onRetryLocation?: () => void;
+  locationDenied?: boolean; locating?: boolean; onRetryLocation?: () => void;
   onConnect(): void; onDisconnect(): void; onToggleStream(): void; onIntensity(i: Intensity): void; onCopilot(): void;
 }) {
   const { node, signedIn, session } = props;
@@ -32,6 +32,9 @@ export function MapRail(props: {
               <button className="btn btn--ghost" onClick={() => setBannerDismissed(true)}>Browse</button>
             </div>
           </div>
+        )}
+        {props.locating && !session && !node && !showBanner && (
+          <p className="hint">✦ Locating you…</p>
         )}
         {props.copilotMsg && <p className="hint copilot-msg">✦ {props.copilotMsg}</p>}
         {!session && (
