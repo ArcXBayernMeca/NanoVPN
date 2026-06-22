@@ -15,6 +15,6 @@ describe("SiteNav", () => {
     render(<SiteNav />);
     expect(screen.getByRole("link", { name: /^agent$/i })).toHaveAttribute("href", "/agent");
     expect(screen.getByRole("link", { name: /use with agent/i })).toHaveAttribute("href", "/use-with-agent");
-    expect(screen.getByRole("link", { name: /map/i })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: /map/i })).toHaveAttribute("href", "/map");
   });
 });
