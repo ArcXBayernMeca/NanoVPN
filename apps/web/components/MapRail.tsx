@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import type { NodeListing } from "@nanovpn/core";
 import { Counter } from "./Counter";
 import { SettlementLog } from "./SettlementLog";
@@ -7,9 +8,12 @@ import type { Intensity } from "@/lib/traffic";
 export function MapRail(props: {
   node: NodeListing | null; signedIn: string | null; session: { sessionId: string } | null;
   connecting: boolean; streaming: boolean; intensity: Intensity; copilotMsg: string | null;
+  locationDenied?: boolean; onRetryLocation?: () => void;
   onConnect(): void; onDisconnect(): void; onToggleStream(): void; onIntensity(i: Intensity): void; onCopilot(): void;
 }) {
   const { node, signedIn, session } = props;
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const showBanner = !!props.locationDenied && !session && !bannerDismissed;
   return (
     <aside className="maprail">
       <section className="maprail__sec">
@@ -20,6 +24,15 @@ export function MapRail(props: {
             <span className="node-card__rate">${node.pricePerGbUsd}/GB</span>
           </div>
         ) : <p className="hint">Spin the globe and pick a node — or let the AI choose.</p>}
+        {showBanner && (
+          <div className="maprail__banner">
+            <p className="hint">Location off — pick a node on the map, or enable location &amp; retry.</p>
+            <div className="btn--row">
+              <button className="btn btn--ghost" onClick={() => props.onRetryLocation?.()}>Retry</button>
+              <button className="btn btn--ghost" onClick={() => setBannerDismissed(true)}>Browse</button>
+            </div>
+          </div>
+        )}
         {props.copilotMsg && <p className="hint copilot-msg">✦ {props.copilotMsg}</p>}
         {!session && (
           <div style={{ marginTop: 12, display: "grid", gap: 8 }}>

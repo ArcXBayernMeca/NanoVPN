@@ -417,3 +417,6 @@ a:hover { text-decoration: underline; }
 .mbk__dot { fill: var(--green-bright); }
 .mbk__halo { fill: var(--green-bright); opacity: .14; }
 .mbk__pin .mbk__halo { animation: wmapPulse 2.6s ease-out infinite; }
+
+.maprail__banner { margin-top: 10px; padding: 10px; border: 1px solid rgba(217,138,43,.4); border-radius: 10px; background: rgba(217,138,43,.08); }
+.maprail__banner .btn--row { margin-top: 8px; }
