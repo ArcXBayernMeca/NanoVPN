@@ -444,3 +444,7 @@ a:hover { text-decoration: underline; }
 
 .tape__anchor { display: inline-block; margin-top: 8px; font-family: var(--font-mono); font-size: 11px; }
 .maprail .tape__anchor { color: var(--green-bright); }
+
+/* ---------- agent answer card ---------- */
+.agent-answer { border: 1px solid var(--green-line); background: var(--green-tint); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
+.agent-answer p { margin: 6px 0 0; font-size: 15px; line-height: 1.5; color: var(--ink); }

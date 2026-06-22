@@ -27,15 +27,13 @@ export default async function AgentPage({ searchParams }: { searchParams: Promis
       </main>
     );
   }
-  const seller = nodes.find((n) => n.id === row.node_id)?.operatorAddress;
-
   return (
     <main className="agent-page">
       <h1>Watch the AI work</h1>
       <AgentRunForm />
       <header className="agent-run"><p className="agent-run__goal">{row.goal}</p></header>
       <div className="agent-layout">
-        <AgentFeed runId={row.id} sellerAddress={seller} />
+        <AgentFeed runId={row.id} />
         <AgentStatusRail nodeId={row.node_id} spentMicroUsd={row.spent_micro_usd} budgetMicroUsd={row.budget_micro_usd} status={row.status} nodes={nodes} />
       </div>
     </main>
