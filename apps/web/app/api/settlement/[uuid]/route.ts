@@ -5,6 +5,9 @@ export const runtime = "nodejs";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ uuid: string }> }) {
   const { uuid } = await params;
+  if (!/^[0-9a-f-]{36}$/i.test(uuid)) {
+    return NextResponse.json({ error: "invalid uuid" }, { status: 400 });
+  }
   try {
     const r = await fetch(`${ARC.facilitator}/v1/x402/transfers/${uuid}`, { cache: "no-store" });
     if (!r.ok) return NextResponse.json({ error: "facilitator error", status: r.status }, { status: 502 });
