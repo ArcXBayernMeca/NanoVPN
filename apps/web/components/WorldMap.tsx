@@ -38,6 +38,15 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, us
   const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const pins = useMemo(() => (projection ? pinPositions(nodes, projection) : []), [nodes, projection]);
 
+  // Serialize the ~177 country paths only when the projection changes — NOT on every
+  // pan/zoom. Panning/zooming only mutates the <g transform>, so these stable element
+  // refs let React skip re-reconciling the whole world each frame (avoids a re-render
+  // storm that can crash the tab).
+  const landPaths = useMemo(
+    () => (path ? land.map((f, i) => <path key={i} d={path(f) ?? ""} className="wmap__land" vectorEffect="non-scaling-stroke" />) : null),
+    [land, path],
+  );
+
   // Pan/zoom state. Default k=1 shows the whole world; if we know the user's
   // location we recenter on it once on arrival (see the centering effect below).
   const [view, setView] = useState<View>({ k: 1, x: 0, y: 0 });
@@ -57,7 +66,25 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, us
     const cx = w / 2, cy = h / 2; // zoom toward center
     return { k, x: cx - ((cx - v.x) / v.k) * k, y: cy - ((cy - v.y) / v.k) * k };
   });
-  const onWheel = (e: React.WheelEvent) => { zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15); };
+
+  // Zoom on Ctrl/⌘ + wheel (and trackpad pinch, which sets ctrlKey) only — a plain
+  // scroll is left to the page. Native non-passive listener so preventDefault can stop
+  // the browser's own page-zoom. (React's onWheel is passive and can't preventDefault.)
+  useEffect(() => {
+    const el = wrapRef.current; if (!el) return;
+    const onWheelNative = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return; // plain scroll → don't hijack it
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+      setView((v) => {
+        const k = clampK(v.k * factor);
+        const cx = w / 2, cy = h / 2;
+        return { k, x: cx - ((cx - v.x) / v.k) * k, y: cy - ((cy - v.y) / v.k) * k };
+      });
+    };
+    el.addEventListener("wheel", onWheelNative, { passive: false });
+    return () => el.removeEventListener("wheel", onWheelNative);
+  }, [w, h]);
 
   // Center on the user's location once, when it first becomes available.
   const didCenterOnUser = useRef(false);
@@ -81,14 +108,11 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, us
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
-      onWheel={onWheel}
     >
       {projection && path && (
         <svg className="wmap__svg" width={w} height={h}>
           <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
-            {land.map((f, i) => (
-              <path key={i} d={path(f) ?? ""} className="wmap__land" vectorEffect="non-scaling-stroke" />
-            ))}
+            {landPaths}
             {connected && sel && (() => {
               const a = projection(userLocation ? [userLocation.lng, userLocation.lat] : [0, 20]) as [number, number] | null;
               const b = projection([sel.geo.lng, sel.geo.lat]) as [number, number] | null;
