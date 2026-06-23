@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { feature } from "topojson-client";
 import type { NodeListing } from "@nanovpn/core";
 import type { Intensity } from "@/lib/traffic";
 
@@ -90,9 +89,12 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, us
   }, []);
 
   // ---- load the bundled world geometry once ----
+  // world.geojson is pre-cleaned for MapLibre's fill tessellation (consistent ring winding +
+  // antimeridian unwrapped) so countries don't render as stray triangles/bands. See the
+  // build step that derives it from world-110m.json.
   useEffect(() => {
-    fetch("/world-110m.json").then((r) => r.json())
-      .then((topo) => setWorld({ type: "FeatureCollection", features: (feature(topo, topo.objects.countries) as any).features }))
+    fetch("/world.geojson").then((r) => r.json())
+      .then((fc) => setWorld(fc as GeoJSON.FeatureCollection))
       .catch(() => {});
   }, []);
 
