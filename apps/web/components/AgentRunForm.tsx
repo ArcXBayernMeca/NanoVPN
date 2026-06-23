@@ -30,7 +30,7 @@ export function AgentRunForm() {
       <div className="run-form__row">
         <label className="run-form__field">
           <span>Max budget (USDC)</span>
-          <input className="run-form__budget" type="number" step="0.01" min="0.0001" max="0.05"
+          <input className="run-form__budget" type="number" step="0.01" min="0.01" max="0.05"
             value={budget} onChange={(e) => setBudget(e.target.value)} />
         </label>
         <button className="btn btn--primary" disabled={busy || !goal}>{busy ? "Starting…" : "Run agent ▸"}</button>

@@ -223,7 +223,9 @@ a:hover { text-decoration: underline; }
 }
 .agent-gauge { width: 84px; height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
 .agent-gauge__fill { display: block; height: 100%; background: var(--green); border-radius: 999px; }
-.agent-pay__meta { color: var(--muted); }
+/* Meta sits on its own line and must break the long egress IP rather than clip it
+   (the payments column is narrow); overflow-wrap:anywhere allows breaking inside the IP. */
+.agent-pay__meta { color: var(--muted); overflow-wrap: anywhere; }
 
 .agent-grid {
   display: grid; grid-template-columns: 1fr 360px; gap: 1px;
@@ -259,12 +261,16 @@ a:hover { text-decoration: underline; }
 [data-kind="error"] .agent-kind { color: var(--amber); background: #fff8ee; border-color: #f3d9a4; }
 [data-kind="tool_call"] .agent-kind { color: var(--ink-2); background: var(--canvas); border-color: var(--line); }
 
+/* Two-line row: amount + verified toggle on top, meta below — so a long
+   egress IP wraps onto its own full-width line instead of clipping the column. */
 .agent-payments li {
-  display: flex; align-items: center; gap: 10px; padding: 9px 0;
+  display: flex; flex-direction: column; gap: 4px; padding: 9px 0; min-width: 0;
   border-top: 1px dashed var(--line); font-family: var(--font-mono); font-size: 12.5px;
   animation: tapein .3s ease both;
 }
 .agent-payments li:first-child { border-top: none; }
+.agent-pay__row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.agent-pay__row .sproof { margin-left: auto; flex-shrink: 0; }
 
 .agent-amt {
   font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; flex-shrink: 0;
@@ -400,7 +406,8 @@ a:hover { text-decoration: underline; }
 .maprail .tape__view { color: rgba(234,242,238,.5); }
 .maprail .tape__view:hover { color: var(--green-bright); }
 .maprail .hint { color: rgba(234,242,238,.6); }
-.maprail .node-card__name { color: #f1f7f4; }
+/* node-card has its own light --green-tint background, so the name stays dark (not whitened like the rest of the dark rail) */
+.maprail .node-card__name { color: var(--ink); }
 
 /* ---------- world map connection line + zoom buttons ---------- */
 .wmap__link { stroke: var(--green-bright); stroke-width: 1.2; stroke-dasharray: 4 4; opacity: .7; fill: none; }
@@ -446,5 +453,18 @@ a:hover { text-decoration: underline; }
 .maprail .tape__anchor { color: var(--green-bright); }
 
 /* ---------- agent answer card ---------- */
-.agent-answer { border: 1px solid var(--green-line); background: var(--green-tint); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
-.agent-answer p { margin: 6px 0 0; font-size: 15px; line-height: 1.5; color: var(--ink); }
+.agent-answer { border: 1px solid var(--green-line); background: var(--green-tint); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+.agent-answer__body { margin-top: 8px; font-size: 14.5px; line-height: 1.6; color: var(--ink); }
+.agent-answer__body > :first-child { margin-top: 0; }
+.agent-answer__body p { margin: 10px 0 0; }
+.agent-answer__body .agent-answer__h { margin: 14px 0 0; font-weight: 700; font-size: 15px; }
+.agent-answer__body strong { font-weight: 700; color: var(--ink); }
+.agent-answer__body em { font-style: italic; }
+.agent-answer__body code {
+  font-family: var(--font-mono); font-size: 12.5px; color: var(--green);
+  background: rgba(15,169,104,.10); border: 1px solid var(--green-line);
+  border-radius: 5px; padding: 1px 5px; white-space: nowrap;
+}
+.agent-answer__body ul, .agent-answer__body ol { margin: 10px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 5px; }
+.agent-answer__body li { line-height: 1.55; }
+.agent-answer__body li::marker { color: var(--green); }

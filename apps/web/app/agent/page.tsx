@@ -33,8 +33,9 @@ export default async function AgentPage({ searchParams }: { searchParams: Promis
       <AgentRunForm />
       <header className="agent-run"><p className="agent-run__goal">{row.goal}</p></header>
       <div className="agent-layout">
-        <AgentFeed runId={row.id} />
-        <AgentStatusRail runId={row.id} initialNodeId={row.node_id} initialSpentMicroUsd={row.spent_micro_usd} budgetMicroUsd={row.budget_micro_usd} initialStatus={row.status} nodes={nodes} />
+        {/* key by run so all per-run client state resets when navigating between runs */}
+        <AgentFeed key={row.id} runId={row.id} />
+        <AgentStatusRail key={row.id} runId={row.id} initialNodeId={row.node_id} initialSpentMicroUsd={row.spent_micro_usd} budgetMicroUsd={row.budget_micro_usd} initialStatus={row.status} nodes={nodes} />
       </div>
     </main>
   );
