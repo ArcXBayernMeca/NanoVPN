@@ -12,6 +12,7 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, us
   userLocation?: { lat: number; lng: number } | null;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dims, setDims] = useState({ w: 0, h: 0 });
   const [land, setLand] = useState<any[]>([]);
 
@@ -33,24 +34,44 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, us
     if (!w || !h) return null;
     return geoNaturalEarth1().fitExtent([[8, 8], [w - 8, h - 8]], { type: "Sphere" } as any);
   }, [w, h]);
-  const path = useMemo(() => (projection ? geoPath(projection) : null), [projection]);
 
   const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const pins = useMemo(() => (projection ? pinPositions(nodes, projection) : []), [nodes, projection]);
-
-  // Render the whole world as ONE combined path (not ~177 separate ones) and WITHOUT
-  // non-scaling-stroke, so the GPU repaints far less geometry per pan/zoom frame. The
-  // 177-element + per-frame stroke-recompute version crashed Chromium's GPU process
-  // under sustained drag. d3-geo serializes a FeatureCollection into a single `d`.
-  const landPath = useMemo(
-    () => (path && land.length ? path({ type: "FeatureCollection", features: land } as any) : null),
-    [land, path],
-  );
 
   // Pan/zoom state. Default k=1 shows the whole world; if we know the user's
   // location we recenter on it once on arrival (see the centering effect below).
   const [view, setView] = useState<View>({ k: 1, x: 0, y: 0 });
   const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
+
+  // Draw the landmass to a <canvas>, NOT an SVG path. An SVG <g transform> updated every
+  // pointermove re-rasterizes the whole (very complex) vector path each frame, which
+  // saturates and crashes Chromium's GPU process under sustained drag ("This page couldn't
+  // load"). A canvas is a single compositor layer redrawn with one cheap 2D fill+stroke per
+  // frame — stable with hardware acceleration on. The few interactive marks (pins, link,
+  // "you are here") stay as a light SVG overlay below, which is trivial to repaint.
+  useEffect(() => {
+    const cv = canvasRef.current;
+    if (!cv || !projection || !w || !h) return;
+    const ctx = cv.getContext("2d");
+    if (!ctx) return; // jsdom / canvas unsupported — interactive marks still render
+    const dpr = Math.min((typeof window !== "undefined" && window.devicePixelRatio) || 1, 2);
+    const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
+    if (cv.width !== bw || cv.height !== bh) { cv.width = bw; cv.height = bh; }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS pixels, crisp on HiDPI
+    ctx.clearRect(0, 0, w, h);
+    if (!land.length) return;
+    ctx.save();
+    ctx.translate(view.x, view.y);
+    ctx.scale(view.k, view.k);
+    ctx.beginPath();
+    geoPath(projection, ctx)({ type: "FeatureCollection", features: land } as any);
+    ctx.fillStyle = "#1c2a23";
+    ctx.fill();
+    ctx.lineWidth = 0.6;
+    ctx.strokeStyle = "#33473b";
+    ctx.stroke();
+    ctx.restore();
+  }, [land, projection, view, w, h]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     (e.target as Element).setPointerCapture?.(e.pointerId);
@@ -109,10 +130,10 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, us
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
     >
-      {projection && path && (
+      <canvas ref={canvasRef} className="wmap__canvas" />
+      {projection && (
         <svg className="wmap__svg" width={w} height={h}>
           <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
-            {landPath && <path d={landPath} className="wmap__land" />}
             {connected && sel && (() => {
               const a = projection(userLocation ? [userLocation.lng, userLocation.lat] : [0, 20]) as [number, number] | null;
               const b = projection([sel.geo.lng, sel.geo.lat]) as [number, number] | null;
