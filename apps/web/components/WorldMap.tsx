@@ -1,191 +1,170 @@
 "use client";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { geoNaturalEarth1, geoPath } from "d3-geo";
+import { useEffect, useRef, useState } from "react";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { feature } from "topojson-client";
 import type { NodeListing } from "@nanovpn/core";
 import type { Intensity } from "@/lib/traffic";
-import { clampK, viewCenteredOn, viewForLocation, type View, pinPositions } from "@/lib/map-view";
 
-// useLayoutEffect on the client (so the canvas redraw + transform reset happen before
-// paint, no flash), useEffect on the server to avoid the SSR warning.
-const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+// A real WebGL map engine (MapLibre GL). WebGL is a single GPU-native context built for
+// continuous pan/zoom, so the per-frame repaint flood that crashed the old SVG/canvas map
+// can't happen. We feed it our own bundled world geometry (no tiles, no API key) and style
+// it dark to match the design; node pins are HTML markers layered on top.
 
-export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, userLocation }: {
+type LngLat = [number, number];
+const EMPTY_STYLE = { version: 8, sources: {}, layers: [] } as unknown as maplibregl.StyleSpecification;
+const EMPTY_FC = () => ({ type: "FeatureCollection", features: [] }) as GeoJSON.FeatureCollection;
+const WORLD_BOUNDS: [LngLat, LngLat] = [[-170, -56], [185, 79]];
+
+export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, userLocation, interactive = true }: {
   nodes: NodeListing[]; selectedId: string | null; connected: boolean;
   streaming: Intensity | null; onSelect: (id: string) => void;
-  userLocation?: { lat: number; lng: number } | null;
+  userLocation?: { lat: number; lng: number } | null; interactive?: boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [dims, setDims] = useState({ w: 0, h: 0 });
-  const [land, setLand] = useState<any[]>([]);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const meMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const didCenterUser = useRef(false);
+  const [ready, setReady] = useState(false);
+  const [world, setWorld] = useState<GeoJSON.FeatureCollection | null>(null);
 
+  // latest props for use inside long-lived map/marker callbacks (avoid stale closures)
+  const onSelectRef = useRef(onSelect); onSelectRef.current = onSelect;
+
+  // ---- create the map once ----
+  useEffect(() => {
+    if (!wrapRef.current || mapRef.current) return;
+    const map = new maplibregl.Map({
+      container: wrapRef.current,
+      style: EMPTY_STYLE,
+      center: [10, 25],
+      zoom: 1,
+      minZoom: 0,
+      maxZoom: 6,
+      interactive,
+      attributionControl: false,
+      renderWorldCopies: false,
+      cooperativeGestures: interactive, // plain scroll scrolls the page; ⌘/Ctrl+scroll zooms
+    });
+    mapRef.current = map;
+    map.dragRotate.disable();
+    map.touchZoomRotate.disableRotation();
+
+    map.on("load", () => {
+      map.addSource("world", { type: "geojson", data: EMPTY_FC() });
+      map.addLayer({ id: "land", type: "fill", source: "world", paint: { "fill-color": "#1c2a23" } });
+      map.addLayer({ id: "land-line", type: "line", source: "world", paint: { "line-color": "#33473b", "line-width": 0.6 } });
+      map.addSource("link", { type: "geojson", data: EMPTY_FC() });
+      map.addLayer({
+        id: "link", type: "line", source: "link",
+        layout: { "line-cap": "round" },
+        paint: { "line-color": "#15d687", "line-width": 1.4, "line-dasharray": [2, 2], "line-opacity": 0 },
+      });
+      if (interactive) map.fitBounds(WORLD_BOUNDS, { padding: 24, animate: false });
+      setReady(true);
+    });
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      markersRef.current.clear();
+      meMarkerRef.current = null;
+      didCenterUser.current = false;
+    };
+  }, [interactive]);
+
+  // ---- keep the map sized to its container (rail/stage can resize without the window) ----
   useEffect(() => {
     const el = wrapRef.current; if (!el) return;
-    const measure = () => setDims({ w: el.clientWidth, h: el.clientHeight });
-    measure(); const ro = new ResizeObserver(measure); ro.observe(el);
+    const ro = new ResizeObserver(() => mapRef.current?.resize());
+    ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
+  // ---- load the bundled world geometry once ----
   useEffect(() => {
     fetch("/world-110m.json").then((r) => r.json())
-      .then((topo) => setLand((feature(topo, topo.objects.countries) as any).features))
+      .then((topo) => setWorld({ type: "FeatureCollection", features: (feature(topo, topo.objects.countries) as any).features }))
       .catch(() => {});
   }, []);
 
-  const { w, h } = dims;
-  const projection = useMemo(() => {
-    if (!w || !h) return null;
-    return geoNaturalEarth1().fitExtent([[8, 8], [w - 8, h - 8]], { type: "Sphere" } as any);
-  }, [w, h]);
-
-  const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
-  const pins = useMemo(() => (projection ? pinPositions(nodes, projection) : []), [nodes, projection]);
-
-  // Pan/zoom state. `view` is the COMMITTED transform that drives both the canvas land and
-  // the SVG overlay. Live dragging does NOT touch this (see onPointerMove) — it pans via a
-  // compositor-only CSS transform on the stage and only commits here on release.
-  const [view, setView] = useState<View>({ k: 1, x: 0, y: 0 });
-  const drag = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null);
-
-  // Draw the landmass to a <canvas>, NOT an SVG path, and only when the committed `view`
-  // changes (release / zoom / fly-to) — never per drag frame. An SVG <g transform> or a
-  // canvas redraw fired on every pointermove re-rasterizes the (very complex) country
-  // geometry each frame, which saturates and crashes Chromium's GPU process under sustained
-  // drag ("This page couldn't load"). Live panning is a pure compositor transform instead.
-  useIsoLayoutEffect(() => {
-    const cv = canvasRef.current;
-    if (!cv || !projection || !w || !h) return;
-    const ctx = cv.getContext("2d");
-    // The committed view now drives the map; drop any leftover live-drag transform so the
-    // stage isn't double-offset. Done in the same (pre-paint) tick as the redraw → no flash.
-    const s = stageRef.current; if (s && s.style.transform) s.style.transform = "";
-    if (!ctx) return; // jsdom / canvas unsupported — interactive marks still render
-    const dpr = Math.min((typeof window !== "undefined" && window.devicePixelRatio) || 1, 2);
-    const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
-    if (cv.width !== bw || cv.height !== bh) { cv.width = bw; cv.height = bh; }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS pixels, crisp on HiDPI
-    ctx.clearRect(0, 0, w, h);
-    if (!land.length) return;
-    ctx.save();
-    ctx.translate(view.x, view.y);
-    ctx.scale(view.k, view.k);
-    ctx.beginPath();
-    geoPath(projection, ctx)({ type: "FeatureCollection", features: land } as any);
-    ctx.fillStyle = "#1c2a23";
-    ctx.fill();
-    ctx.lineWidth = 0.6;
-    ctx.strokeStyle = "#33473b";
-    ctx.stroke();
-    ctx.restore();
-  }, [land, projection, view, w, h]);
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-    drag.current = { x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
-  };
-  const onPointerMove = (e: React.PointerEvent) => {
-    const d = drag.current; if (!d) return;
-    d.dx = e.clientX - d.x; d.dy = e.clientY - d.y;
-    // Compositor-only live pan: translate the already-rendered canvas+svg layers. No
-    // setState, no canvas redraw, no SVG repaint during the gesture → the GPU process is
-    // never asked to repaint the heavy geometry per frame. Committed on release.
-    const s = stageRef.current; if (s) s.style.transform = `translate(${d.dx}px,${d.dy}px)`;
-  };
-  const onPointerUp = () => {
-    const d = drag.current; drag.current = null;
-    if (!d || (!d.dx && !d.dy)) return; // a click (or no movement) — nothing to commit
-    setView((v) => ({ ...v, x: v.x + d.dx, y: v.y + d.dy })); // redraw effect clears the transform
-  };
-  const zoomBy = (factor: number) => setView((v) => {
-    const k = clampK(v.k * factor);
-    const cx = w / 2, cy = h / 2; // zoom toward center
-    return { k, x: cx - ((cx - v.x) / v.k) * k, y: cy - ((cy - v.y) / v.k) * k };
-  });
-
-  // Zoom on Ctrl/⌘ + wheel (and trackpad pinch, which sets ctrlKey) only — a plain
-  // scroll is left to the page. Native non-passive listener so preventDefault can stop
-  // the browser's own page-zoom. (React's onWheel is passive and can't preventDefault.)
+  // ---- push world geometry into the source when both map + data are ready ----
   useEffect(() => {
-    const el = wrapRef.current; if (!el) return;
-    const onWheelNative = (e: WheelEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return; // plain scroll → don't hijack it
-      e.preventDefault();
-      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      setView((v) => {
-        const k = clampK(v.k * factor);
-        const cx = w / 2, cy = h / 2;
-        return { k, x: cx - ((cx - v.x) / v.k) * k, y: cy - ((cy - v.y) / v.k) * k };
-      });
-    };
-    el.addEventListener("wheel", onWheelNative, { passive: false });
-    return () => el.removeEventListener("wheel", onWheelNative);
-  }, [w, h]);
+    if (!ready || !world) return;
+    (mapRef.current?.getSource("world") as maplibregl.GeoJSONSource | undefined)?.setData(world);
+  }, [ready, world]);
 
-  // Center on the user's location once, when it first becomes available.
-  const didCenterOnUser = useRef(false);
+  // ---- node pins as HTML markers (rebuild when the node list changes) ----
   useEffect(() => {
-    if (didCenterOnUser.current || !projection || !userLocation || !w || !h) return;
-    const v = viewForLocation(userLocation, projection, w, h, 3);
-    if (v) { setView(v); didCenterOnUser.current = true; }
-  }, [projection, userLocation, w, h]);
+    const map = mapRef.current; if (!map || !ready) return;
+    for (const m of markersRef.current.values()) m.remove();
+    markersRef.current.clear();
+    for (const n of nodes) {
+      const el = document.createElement("div");
+      el.className = "wmap-pin" + (n.id === selectedId ? " is-on" : "");
+      el.innerHTML = '<span class="wmap-pin__halo"></span><span class="wmap-pin__dot"></span>';
+      el.title = `${n.geo.city} · $${n.pricePerGbUsd}/GB`;
+      if (interactive) {
+        el.style.cursor = "pointer";
+        el.addEventListener("click", (e) => { e.stopPropagation(); onSelectRef.current(n.id); });
+      }
+      const marker = new maplibregl.Marker({ element: el }).setLngLat([n.geo.lng, n.geo.lat]).addTo(map);
+      markersRef.current.set(n.id, marker);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, nodes, interactive]);
 
-  // Fly-to-selection: recenter when selectedId changes
-  const sel = nodes.find((n) => n.id === selectedId) ?? null;
+  // ---- selection: highlight the chosen pin + fly to it ----
   useEffect(() => {
-    if (!projection || !sel) return;
-    const p = projection([sel.geo.lng, sel.geo.lat]) as [number, number] | null;
-    if (p) setView((v) => viewCenteredOn(p[0], p[1], w, h, Math.max(v.k, 2.6)));
-  }, [selectedId, projection, w, h]); // eslint-disable-line react-hooks/exhaustive-deps
+    const map = mapRef.current; if (!map || !ready) return;
+    for (const [id, marker] of markersRef.current) marker.getElement().classList.toggle("is-on", id === selectedId);
+    const sel = nodes.find((n) => n.id === selectedId);
+    if (sel) map.flyTo({ center: [sel.geo.lng, sel.geo.lat], zoom: Math.max(map.getZoom(), 3.2), speed: 0.8 });
+  }, [ready, selectedId, nodes]);
+
+  // ---- connection line (user/origin → selected node) ----
+  useEffect(() => {
+    const map = mapRef.current; if (!map || !ready) return;
+    const src = map.getSource("link") as maplibregl.GeoJSONSource | undefined; if (!src) return;
+    const sel = nodes.find((n) => n.id === selectedId);
+    if (connected && sel) {
+      const from: LngLat = userLocation ? [userLocation.lng, userLocation.lat] : [0, 20];
+      src.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [from, [sel.geo.lng, sel.geo.lat]] } } as any);
+      map.setPaintProperty("link", "line-opacity", streaming ? 1 : 0.85);
+      map.setPaintProperty("link", "line-width", streaming ? 1.8 : 1.4);
+    } else {
+      src.setData(EMPTY_FC());
+      map.setPaintProperty("link", "line-opacity", 0);
+    }
+  }, [ready, connected, selectedId, nodes, userLocation, streaming]);
+
+  // ---- "you are here" marker + center on the user once ----
+  useEffect(() => {
+    const map = mapRef.current; if (!map || !ready || !userLocation) return;
+    if (!meMarkerRef.current) {
+      const el = document.createElement("div");
+      el.className = "wmap-me";
+      el.innerHTML = '<span class="wmap-me__halo"></span><span class="wmap-me__dot"></span>';
+      el.title = "You are here";
+      meMarkerRef.current = new maplibregl.Marker({ element: el }).setLngLat([userLocation.lng, userLocation.lat]).addTo(map);
+    } else {
+      meMarkerRef.current.setLngLat([userLocation.lng, userLocation.lat]);
+    }
+    if (interactive && !didCenterUser.current) {
+      map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: 3, speed: 0.8 });
+      didCenterUser.current = true;
+    }
+  }, [ready, userLocation, interactive]);
 
   return (
-    <div ref={wrapRef} className="wmap"
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerLeave={onPointerUp}
-    >
-      <div ref={stageRef} className="wmap__stage">
-        <canvas ref={canvasRef} className="wmap__canvas" />
-        {projection && (
-          <svg className="wmap__svg" width={w} height={h}>
-            <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
-              {connected && sel && (() => {
-                const a = projection(userLocation ? [userLocation.lng, userLocation.lat] : [0, 20]) as [number, number] | null;
-                const b = projection([sel.geo.lng, sel.geo.lat]) as [number, number] | null;
-                return a && b ? <line className={`wmap__link${streaming ? " is-live" : ""}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} vectorEffect="non-scaling-stroke" /> : null;
-              })()}
-              {userLocation && (() => {
-                const p = projection([userLocation.lng, userLocation.lat]) as [number, number] | null;
-                return p ? (
-                  <g transform={`translate(${p[0]},${p[1]})`} className="wmap__me">
-                    <circle className="wmap__me-halo" r={10} vectorEffect="non-scaling-stroke" />
-                    <circle className="wmap__me-dot" r={4} vectorEffect="non-scaling-stroke" />
-                    <title>You are here</title>
-                  </g>
-                ) : null;
-              })()}
-              {pins.map(({ id, x, y }) => {
-                const n = nodeById.get(id); if (!n) return null;
-                const on = id === selectedId;
-                return (
-                  <g key={id} transform={`translate(${x},${y})`}
-                     className={`wmap__pin ${on ? "is-on" : ""}`} onClick={() => onSelect(id)}>
-                    <circle className="wmap__halo" r={on ? 12 : 8} vectorEffect="non-scaling-stroke" />
-                    <circle className="wmap__dot" r={on ? 5 : 3.5} vectorEffect="non-scaling-stroke" />
-                    <title>{n.geo.city} · ${n.pricePerGbUsd}/GB</title>
-                  </g>
-                );
-              })}
-            </g>
-          </svg>
-        )}
-      </div>
-      <div className="wmap__zoom" onPointerDown={(e) => e.stopPropagation()}>
-        <button aria-label="zoom in" onClick={() => zoomBy(1.4)}>+</button>
-        <button aria-label="zoom out" onClick={() => zoomBy(1 / 1.4)}>−</button>
-      </div>
+    <div ref={wrapRef} className="wmap">
+      {interactive && (
+        <div className="wmap__zoom">
+          <button aria-label="zoom in" onClick={() => mapRef.current?.zoomIn()}>+</button>
+          <button aria-label="zoom out" onClick={() => mapRef.current?.zoomOut()}>−</button>
+        </div>
+      )}
     </div>
   );
 }

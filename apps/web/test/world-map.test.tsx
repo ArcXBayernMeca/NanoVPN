@@ -2,10 +2,32 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
 import { geoNaturalEarth1 } from "d3-geo";
-import { WorldMap } from "../components/WorldMap";
 import { pinPositions } from "@/lib/map-view";
 
-// d3-geo uses ResizeObserver — stub it in jsdom
+// MapLibre GL needs WebGL, which jsdom doesn't have — stub the bits WorldMap touches.
+vi.mock("maplibre-gl", () => {
+  class Map {
+    on() { return this; } off() { return this; } once() { return this; }
+    addControl() {} remove() {} resize() {} flyTo() {} jumpTo() {} fitBounds() {}
+    zoomIn() {} zoomOut() {} addSource() {} addLayer() {} setPaintProperty() {}
+    getSource() { return { setData() {} }; }
+    getCanvas() { return document.createElement("canvas"); }
+    getZoom() { return 1; }
+    dragRotate = { disable() {} };
+    touchZoomRotate = { disableRotation() {} };
+  }
+  class Marker {
+    setLngLat() { return this; }
+    addTo() { return this; }
+    remove() { return this; }
+    getElement() { return document.createElement("div"); }
+  }
+  return { default: { Map, Marker }, Map, Marker };
+});
+
+import { WorldMap } from "../components/WorldMap";
+
+// jsdom lacks ResizeObserver
 globalThis.ResizeObserver = class {
   observe() {}
   unobserve() {}
