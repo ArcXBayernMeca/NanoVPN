@@ -325,7 +325,11 @@ a:hover { text-decoration: underline; }
 }
 
 /* ---------- world map (MapLibre GL — WebGL, GPU-native pan/zoom) ---------- */
-.wmap { position: absolute; inset: 0; background: radial-gradient(130% 130% at 50% 25%, #0a1410 0%, #060d0a 70%); }
+/* width/height:100% (not just inset:0) is required: MapLibre adds the class .maplibregl-map
+   to this same element, and its stylesheet's `.maplibregl-map{position:relative}` (loaded
+   after ours, equal specificity) overrides our position:absolute — which would void inset:0
+   and collapse the container to height 0. Explicit 100% sizing survives either position. */
+.wmap { position: absolute; inset: 0; width: 100%; height: 100%; background: radial-gradient(130% 130% at 50% 25%, #0a1410 0%, #060d0a 70%); }
 .wmap .maplibregl-map { font: inherit; }
 .wmap .maplibregl-canvas { outline: none; }
 /* transparent gl canvas so the radial-gradient ocean shows through behind the land */

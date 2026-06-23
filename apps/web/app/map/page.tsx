@@ -19,7 +19,7 @@ export default function MapPage() {
   const [copilotMsg, setCopilotMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/nodes").then((r) => r.json()).then((d: NodeListing[]) => setNodes(d)).catch(() => {});
+    fetch("/api/nodes").then((r) => r.json()).then((d) => { if (Array.isArray(d)) setNodes(d); }).catch(() => {});
   }, []);
 
   // Deep-link straight to /map without visiting the landing: acquire location now.
