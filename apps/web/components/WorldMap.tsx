@@ -12,7 +12,14 @@ import type { Intensity } from "@/lib/traffic";
 // it dark to match the design; node pins are HTML markers layered on top.
 
 type LngLat = [number, number];
-const EMPTY_STYLE = { version: 8, sources: {}, layers: [] } as unknown as maplibregl.StyleSpecification;
+// A style with an explicit dark background LAYER (not just a CSS bg): an empty style leaves
+// the WebGL canvas opaque/white, which painted over the page as a blank area. The bg layer
+// is the ocean; land + pins draw on top once loaded.
+const BASE_STYLE = {
+  version: 8,
+  sources: {},
+  layers: [{ id: "ocean", type: "background", paint: { "background-color": "#0a1410" } }],
+} as unknown as maplibregl.StyleSpecification;
 const EMPTY_FC = () => ({ type: "FeatureCollection", features: [] }) as GeoJSON.FeatureCollection;
 const WORLD_BOUNDS: [LngLat, LngLat] = [[-170, -56], [185, 79]];
 
@@ -37,7 +44,7 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, us
     if (!wrapRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: wrapRef.current,
-      style: EMPTY_STYLE,
+      style: BASE_STYLE,
       center: [10, 25],
       zoom: 1,
       minZoom: 0,
