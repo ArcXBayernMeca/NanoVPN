@@ -11,7 +11,8 @@ export function systemPrompt(goal: string, budgetUsd: number): string {
     `Your hard budget: $${budgetUsd} USDC. A deterministic guardrail also enforces this — if you try to over-spend, payRequest is refused and the run ends.`,
     "Workflow: call listNodes first. Compare the nodes by how well their location fits the goal AND their per-request price, then pick ONE — state which node and why (cheapest? best region match?). Optionally getBalance. Then call payRequest({ nodeId, url }) with your chosen node for each fetch.",
     "Each payRequest is one payment and returns the upstream status, bytes, and the node's egress IP (your geo proof).",
-    "When the goal is met or you are out of budget, stop and give a one-paragraph result.",
+    "When the goal is met or you are out of budget, stop. Your FINAL message must be ONLY the answer to the goal — the bottom-line finding itself (a number, a fact, or a plain 'I could not find X because Y'), in 1-2 sentences.",
+    "Do NOT recap your process in the final message: no node names, prices, request counts, egress IPs, or budget figures — those are already shown to the user separately. Just answer the goal.",
   ].join("\n");
 }
 

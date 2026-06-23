@@ -228,7 +228,10 @@ a:hover { text-decoration: underline; }
 .agent-pay__meta { color: var(--muted); overflow-wrap: anywhere; }
 
 .agent-grid {
-  display: grid; grid-template-columns: 1fr 360px; gap: 1px;
+  /* minmax(0,…) so neither column refuses to shrink below its content's min-content —
+     otherwise a long unbreakable token (e.g. a tool-call URL) forces the grid wider than
+     the page container and the whole agent layout overflows / clips on the right. */
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: 1px;
   background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
 }
 
@@ -252,6 +255,8 @@ a:hover { text-decoration: underline; }
   line-height: 1.5; animation: tapein .3s ease both;
 }
 .agent-reasoning li:first-child { border-top: none; }
+/* break long tokens (tool-call URLs/JSON) instead of forcing the column wide */
+.agent-reason__text { min-width: 0; overflow-wrap: anywhere; }
 
 .agent-kind {
   flex-shrink: 0; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
@@ -284,7 +289,7 @@ a:hover { text-decoration: underline; }
 
 /* ---------- agent layout A (timeline + status rail) ---------- */
 .agent-layout {
-  display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start;
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start;
 }
 
 .agent-rail {

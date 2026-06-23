@@ -93,7 +93,7 @@ export function AgentFeed({ runId }: { runId: string }) {
           <ul>{reasoning.map((e) => (
             <li key={e.id} data-kind={e.kind}>
               <span className="agent-kind">{e.kind}</span>
-              <span>{e.kind === "reasoning" ? e.content.text : e.kind === "tool_call" ? `${e.content.name}(${JSON.stringify(e.content.input)})` : e.content.message}</span>
+              <span className="agent-reason__text">{e.kind === "reasoning" ? e.content.text : e.kind === "tool_call" ? `${e.content.name}(${JSON.stringify(e.content.input)})` : e.content.message}</span>
             </li>
           ))}</ul>
         )}

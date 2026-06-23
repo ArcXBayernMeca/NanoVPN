@@ -148,6 +148,27 @@ export function WorldMap({ nodes, selectedId, connected, streaming, onSelect, us
     }
   }, [ready, connected, selectedId, nodes, userLocation, streaming]);
 
+  // ---- animate the connection line into "marching ants" while traffic streams ----
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !connected || !streaming) return;
+    if (!nodes.some((n) => n.id === selectedId)) return;
+    // MapLibre has no animatable dash-offset, so cycle the dash-array to fake motion.
+    const seq = [
+      [0, 4, 3], [0.5, 4, 2.5], [1, 4, 2], [1.5, 4, 1.5], [2, 4, 1], [2.5, 4, 0.5],
+      [3, 4, 0], [0, 0.5, 3, 3.5], [0, 1, 3, 3], [0, 1.5, 3, 2.5], [0, 2, 3, 2],
+      [0, 2.5, 3, 1.5], [0, 3, 3, 1], [0, 3.5, 3, 0.5],
+    ];
+    let raf = 0, last = -1;
+    const tick = (t: number) => {
+      const s = Math.floor((t / 55) % seq.length);
+      if (s !== last) { try { map.setPaintProperty("link", "line-dasharray", seq[s]); } catch { /* layer gone */ } last = s; }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf); try { map.setPaintProperty("link", "line-dasharray", [2, 2]); } catch { /* layer gone */ } };
+  }, [ready, streaming, connected, selectedId, nodes]);
+
   // ---- "you are here" marker + center on the user once ----
   useEffect(() => {
     const map = mapRef.current; if (!map || !ready || !userLocation) return;
