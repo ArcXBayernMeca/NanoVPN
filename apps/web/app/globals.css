@@ -328,7 +328,10 @@ a:hover { text-decoration: underline; }
 .wmap { position: absolute; inset: 0; background: radial-gradient(130% 130% at 50% 25%, #0a1410 0%, #060d0a 70%); cursor: grab; touch-action: none; }
 .wmap:active { cursor: grabbing; }
 /* landmass is drawn on the <canvas> (see WorldMap.tsx — avoids per-frame SVG repaint /
-   GPU crash); the <svg> overlay above it holds only the light interactive marks. */
+   GPU crash); the <svg> overlay above it holds only the light interactive marks. The
+   stage wraps both and is GPU-composited (will-change) so live dragging pans it via a
+   pure CSS transform with zero repaint — the map only redraws on release/zoom. */
+.wmap__stage { position: absolute; inset: 0; will-change: transform; transform-origin: 0 0; }
 .wmap__canvas, .wmap__svg { position: absolute; inset: 0; display: block; }
 .wmap__pin { cursor: pointer; }
 .wmap__dot { fill: var(--green-bright); }
