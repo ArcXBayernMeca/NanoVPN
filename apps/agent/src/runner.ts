@@ -8,14 +8,15 @@ import { startRun } from "./events";
 import { runAgent, systemPrompt } from "./run";
 import { MockBrain, makeAnthropicBrain, type Brain } from "./brain";
 
-export interface RunParams { goal: string; budgetUsd: number; mock?: boolean; nodeId?: string; }
+export interface RunParams { goal: string; budgetUsd: number; mock?: boolean; nodeId?: string; buyerPrivateKey?: string; }
 
 /** Build everything a run needs, insert the agent_runs row now (so the panel can find it),
  *  and return the runId plus a thunk that executes the agent loop. */
 export async function prepareRun(params: RunParams): Promise<{ runId: string; run: () => Promise<{ status: string; result: string }> }> {
   const { goal, budgetUsd } = params;
   const mock = params.mock || !process.env.ANTHROPIC_API_KEY;
-  if (!process.env.BUYER_PRIVATE_KEY) throw new Error("BUYER_PRIVATE_KEY not configured");
+  const buyerKey = params.buyerPrivateKey ?? process.env.BUYER_PRIVATE_KEY;
+  if (!buyerKey) throw new Error("buyer private key not configured");
 
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
   const nodes = (await db.from("nodes").select("id,city,country,proxy_url,price_per_request_usd")).data ?? [];
@@ -24,7 +25,7 @@ export async function prepareRun(params: RunParams): Promise<{ runId: string; ru
   const priceMicroUsd = Math.max(...(nodes as any[]).map((n) => microUsdForRequest(n.price_per_request_usd))); // conservative budget pre-check
   const budgetMicroUsd = microUsdForRequest(budgetUsd);
 
-  const buyer = new GatewayClient({ chain: "arcTestnet", privateKey: process.env.BUYER_PRIVATE_KEY as `0x${string}` });
+  const buyer = new GatewayClient({ chain: "arcTestnet", privateKey: buyerKey as `0x${string}` });
   const executors = makeExecutors({
     nodesReader: async () => ((await db.from("nodes").select("id,city,country,proxy_url,price_per_request_usd")).data ?? []) as any[],
     buyer: buyer as any,
