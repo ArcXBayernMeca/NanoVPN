@@ -13,7 +13,7 @@ vi.mock("@/lib/egress-session", () => ({ getOrCreateEgressSession: vi.fn(async (
 vi.mock("@circle-fin/x402-batching/client", () => ({ GatewayClient: vi.fn().mockImplementation(() => ({ pay })) }));
 
 const insert = vi.fn(async () => ({ error: null }));
-const nodeRow = { id: "tokyo-1", proxy_url: "https://node", country: "Japan", city: "Tokyo", lat: 35, lng: 139, operator_address: "0xSELLER" };
+const nodeRow = { id: "tokyo-1", proxy_url: "https://node", country: "Japan", city: "Tokyo", lat: 35, lng: 139, operator_address: "0xOPERATOR" };
 vi.mock("@/lib/supabase-server", () => ({
   supabaseService: () => ({
     from: (t: string) => t === "nodes"
@@ -26,7 +26,10 @@ import { POST } from "../app/api/egress/route";
 const req = (body: any, cookie?: string) =>
   new NextRequest("http://x/api/egress", { method: "POST", headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}) }, body: JSON.stringify(body) });
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  process.env.SELLER_ADDRESS = "0xSELLER";
+});
 
 describe("POST /api/egress", () => {
   it("401s when not signed in", async () => {
@@ -34,6 +37,12 @@ describe("POST /api/egress", () => {
   });
   it("400s on missing url/nodeId", async () => {
     expect((await POST(req({ nodeId: "tokyo-1" }, "siwe-address=0xABC"))).status).toBe(400);
+  });
+  it("500s when SELLER_ADDRESS is not configured", async () => {
+    delete process.env.SELLER_ADDRESS;
+    const res = await POST(req({ nodeId: "tokyo-1", url: "https://ex.com" }, "siwe-address=0xABC"));
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: "seller not configured" });
   });
   it("pays via the user's EOA, records a settlement, returns the result", async () => {
     const res = await POST(req({ nodeId: "tokyo-1", url: "https://ex.com" }, "siwe-address=0xABC"));

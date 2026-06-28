@@ -6,7 +6,6 @@ import { getOrCreateEgressSession } from "@/lib/egress-session";
 import { supabaseService } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
-const SELLER = process.env.SELLER_ADDRESS ?? null;
 
 export async function POST(req: NextRequest) {
   const address = req.cookies.get("siwe-address")?.value;
@@ -23,6 +22,9 @@ export async function POST(req: NextRequest) {
   const { data: node } = await db.from("nodes").select("id,proxy_url,country,city,lat,lng,operator_address").eq("id", nodeId).single();
   if (!node) return NextResponse.json({ error: "unknown node" }, { status: 404 });
 
+  const sellerAddress = process.env.SELLER_ADDRESS;
+  if (!sellerAddress) return NextResponse.json({ error: "seller not configured" }, { status: 500 });
+
   try {
     // payer EOA comes from the same user_wallets row as the signing key (loadSigningKey) — they always match.
     const { eoaAddress: eoa } = await ensureProvisionedAndFunded(userId);
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     await db.from("settlements").insert({
       session_id: sessionId, settlement_uuid: res.transaction, amount_micro_usd: Number(res.amount),
-      payer: eoa, payee: SELLER ?? node.operator_address, network: ARC.network, status: "received",
+      payer: eoa, payee: sellerAddress, network: ARC.network, status: "received",
     });
 
     return NextResponse.json({

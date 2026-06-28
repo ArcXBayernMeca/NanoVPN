@@ -7,7 +7,7 @@ const { ensureProvisionedAndFunded } = vi.hoisted(() => ({
 vi.mock("@/lib/user-wallet", () => ({ ensureProvisionedAndFunded }));
 const rows = [{ amount_micro_usd: 1000 }, { amount_micro_usd: 2000 }];
 vi.mock("@/lib/supabase-server", () => ({
-  supabaseService: () => ({ from: () => ({ select: () => ({ eq: async () => ({ data: rows }) }) }) }),
+  supabaseService: () => ({ from: () => ({ select: () => ({ eq: async () => ({ data: rows, error: null }) }) }) }),
 }));
 
 import { GET } from "../app/api/wallet/route";

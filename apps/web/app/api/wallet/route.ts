@@ -10,8 +10,9 @@ export async function GET(req: NextRequest) {
   const userId = address.toLowerCase();
   try {
     const wallet = await ensureProvisionedAndFunded(userId);
-    const { data } = await supabaseService()
+    const { data, error } = await supabaseService()
       .from("settlements").select("amount_micro_usd").eq("payer", wallet.eoaAddress);
+    if (error) throw new Error(`spend query failed: ${error.message}`);
     const spentMicroUsd = (data ?? []).reduce((s: number, r: any) => s + Number(r.amount_micro_usd), 0);
     return NextResponse.json({ ...wallet, spentMicroUsd });
   } catch (e) {
