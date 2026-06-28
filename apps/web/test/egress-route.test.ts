@@ -13,7 +13,7 @@ vi.mock("@/lib/egress-session", () => ({ getOrCreateEgressSession: vi.fn(async (
 vi.mock("@circle-fin/x402-batching/client", () => ({ GatewayClient: vi.fn().mockImplementation(() => ({ pay })) }));
 
 const insert = vi.fn(async () => ({ error: null }));
-const nodeRow = { id: "tokyo-1", proxy_url: "https://node", country: "Japan", city: "Tokyo", lat: 35, lng: 139 };
+const nodeRow = { id: "tokyo-1", proxy_url: "https://node", country: "Japan", city: "Tokyo", lat: 35, lng: 139, operator_address: "0xSELLER" };
 vi.mock("@/lib/supabase-server", () => ({
   supabaseService: () => ({
     from: (t: string) => t === "nodes"
@@ -44,7 +44,7 @@ describe("POST /api/egress", () => {
     });
     expect(pay).toHaveBeenCalledWith("https://node/egress?url=https%3A%2F%2Fex.com", { method: "POST" });
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({
-      session_id: "sess-1", settlement_uuid: "uuid-1", amount_micro_usd: 1000, payer: "0xeoa", network: "eip155:5042002", status: "received",
+      session_id: "sess-1", settlement_uuid: "uuid-1", amount_micro_usd: 1000, payer: "0xeoa", payee: "0xSELLER", network: "eip155:5042002", status: "received",
     }));
   });
 });

@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
   if (!node) return NextResponse.json({ error: "unknown node" }, { status: 404 });
 
   try {
+    // payer EOA comes from the same user_wallets row as the signing key (loadSigningKey) — they always match.
     const { eoaAddress: eoa } = await ensureProvisionedAndFunded(userId);
     const key = await loadSigningKey(userId);
     const sessionId = await getOrCreateEgressSession(userId, nodeId, body?.sessionId);
