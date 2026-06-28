@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      // server-only throws in vitest; alias to a no-op so server-side modules are testable.
+      "server-only": path.resolve(__dirname, "test/__mocks__/server-only.ts"),
     },
   },
   test: {
