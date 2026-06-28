@@ -1,10 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { NodeListing } from "@nanovpn/core";
-import { Counter } from "./Counter";
-import { SettlementLog } from "./SettlementLog";
-import { formatUsd } from "./format";
-const STUCK_UNSETTLED_MICRO_USD = 50_000; // $0.05 = 5× the $0.01 settle threshold ⇒ settlement is stuck
+import { FetchPanel } from "./FetchPanel";
 import type { Intensity } from "@/lib/traffic";
 
 export function MapRail(props: {
@@ -15,7 +12,6 @@ export function MapRail(props: {
 }) {
   const { node, signedIn, session } = props;
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  const [unsettled, setUnsettled] = useState(0);
   const showBanner = !!props.locationDenied && !session && !bannerDismissed;
   return (
     <aside className="maprail">
@@ -51,27 +47,10 @@ export function MapRail(props: {
         )}
       </section>
       {session && node && (
-        <>
-          <section className="maprail__sec">
-            <Counter sessionId={session.sessionId} rate={node.pricePerGbUsd} onUnsettled={setUnsettled} />
-            <div className="stream-controls">
-              <button className={`btn ${props.streaming ? "btn--ghost" : "btn--primary"}`} onClick={props.onToggleStream}>{props.streaming ? "Stop traffic" : "Start traffic"}</button>
-              <div className="seg" role="group" aria-label="intensity">
-                {(["light", "medium", "heavy"] as Intensity[]).map((i) => (
-                  <button key={i} className="seg__btn" data-on={props.intensity === i} onClick={() => props.onIntensity(i)}>{i}</button>
-                ))}
-              </div>
-            </div>
-            <button className="btn btn--ghost" style={{ marginTop: 10 }} onClick={props.onDisconnect}>Disconnect</button>
-          </section>
-          <section className="maprail__sec">
-            <span className="eyebrow">On-chain settlements</span>
-            {unsettled >= STUCK_UNSETTLED_MICRO_USD && (
-              <p className="maprail__banner">⚠ Settlement paused — buyer balance low (unsettled {formatUsd(unsettled)} not posting).</p>
-            )}
-            <SettlementLog sessionId={session.sessionId} />
-          </section>
-        </>
+        <section className="maprail__sec">
+          <FetchPanel node={node} />
+          <button className="btn btn--ghost" style={{ marginTop: 10 }} onClick={props.onDisconnect}>Disconnect</button>
+        </section>
       )}
     </aside>
   );

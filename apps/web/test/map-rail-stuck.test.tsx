@@ -1,26 +1,11 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 
-// SettlementLog uses supabase realtime — stub it.
-vi.mock("@/lib/supabase", () => ({
-  supabaseBrowser: () => ({
-    channel: () => ({ on() { return this; }, subscribe() { return this; } }),
-    removeChannel: () => {},
-    from: () => ({ select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: [] }) }) }) }),
-  }),
+// FetchPanel hits /api/wallet on mount — stub it so jsdom doesn't throw.
+vi.mock("@/components/FetchPanel", () => ({
+  FetchPanel: ({ node }: any) => <div data-testid="fetch-panel">FetchPanel for {node.geo.city}</div>,
 }));
-
-// Counter opens an EventSource to the node usage stream — emit one high-unsettled tick.
-class MockES {
-  onmessage: ((e: { data: string }) => void) | null = null;
-  onerror: (() => void) | null = null;
-  constructor() {
-    setTimeout(() => this.onmessage?.({ data: JSON.stringify({ spentMicroUsd: 60000, totalBytes: 1000, unsettledMicroUsd: 60000 }) }), 0);
-  }
-  close() {}
-}
-beforeEach(() => { vi.stubGlobal("EventSource", MockES as any); });
 
 import { MapRail } from "@/components/MapRail";
 
@@ -31,9 +16,16 @@ const base = {
   onConnect: () => {}, onDisconnect: () => {}, onToggleStream: () => {}, onIntensity: () => {}, onCopilot: () => {},
 };
 
-describe("MapRail settlement-paused warning", () => {
-  it("warns when unsettled exceeds the stuck threshold", async () => {
+describe("MapRail connected state", () => {
+  it("shows FetchPanel and Disconnect when connected", () => {
     render(<MapRail {...base} />);
-    await waitFor(() => expect(screen.getByText(/settlement paused/i)).toBeInTheDocument());
+    expect(screen.getByTestId("fetch-panel")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /disconnect/i })).toBeTruthy();
+  });
+
+  it("does not show the old synthetic traffic controls when connected", () => {
+    render(<MapRail {...base} />);
+    expect(screen.queryByText(/start traffic/i)).toBeNull();
+    expect(screen.queryByText(/stop traffic/i)).toBeNull();
   });
 });

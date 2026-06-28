@@ -3,6 +3,10 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MapRail } from "@/components/MapRail";
 
+vi.mock("@/components/FetchPanel", () => ({
+  FetchPanel: ({ node }: any) => <button>Fetch through {node.geo.city}</button>,
+}));
+
 const base = {
   node: null, signedIn: "0xabc", session: null, connecting: false,
   streaming: false, intensity: "medium" as const, copilotMsg: null,
@@ -40,5 +44,17 @@ describe("MapRail locating hint", () => {
   it("does not show the locating hint when locating is falsy", () => {
     render(<MapRail {...base} />);
     expect(screen.queryByText(/locating/i)).toBeNull();
+  });
+});
+
+describe("MapRail connected state", () => {
+  it("renders the FetchPanel (Fetch through …) when connected", () => {
+    const node = { id: "tokyo-1", geo: { country: "Japan", city: "Tokyo", lat: 35, lng: 139 }, pricePerRequestUsd: 0.001 } as any;
+    render(
+      <MapRail node={node} signedIn={"0xabc"} session={{ sessionId: "s1" }} connecting={false}
+        streaming={false} intensity={"medium"} copilotMsg={null}
+        onConnect={() => {}} onDisconnect={() => {}} onToggleStream={() => {}} onIntensity={() => {}} onCopilot={() => {}} />,
+    );
+    expect(screen.getByRole("button", { name: /Fetch through Tokyo/i })).toBeTruthy();
   });
 });

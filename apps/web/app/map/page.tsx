@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { WorldMap } from "@/components/WorldMap";
 import { MapRail } from "@/components/MapRail";
-import { useTrafficStream, type Intensity } from "@/lib/traffic";
+import type { Intensity } from "@/lib/traffic";
 import { useWallet } from "@/components/WalletProvider";
 import { useLocation } from "@/lib/location";
 import type { NodeListing } from "@nanovpn/core";
@@ -28,7 +28,6 @@ export default function MapPage() {
   }, [status, request]);
 
   const node = nodes.find((n) => n.id === selected) ?? null;
-  useTrafficStream(session?.sessionId ?? null, intensity, streaming);
 
   async function connect() {
     if (!selected || !signedIn) return;
