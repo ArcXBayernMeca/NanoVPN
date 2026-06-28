@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
+    "@circle-fin/x402-batching": "^2.0.4",
     "@nanovpn/agent": "workspace:^",
     "@nanovpn/core": "workspace:*",
     "@supabase/ssr": "^0.9.0",

@@ -88,6 +88,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.105.0
         version: 0.105.0(zod@3.25.76)
+      '@circle-fin/x402-batching':
+        specifier: ^2.0.4
+        version: 2.1.0(@x402/core@2.15.0)(@x402/evm@2.15.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(viem@2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))
       '@nanovpn/agent':
         specifier: workspace:^
         version: link:../agent
@@ -3792,6 +3795,13 @@ snapshots:
   '@bramus/specificity@2.4.2':
     dependencies:
       css-tree: 3.2.1
+
+  '@circle-fin/x402-batching@2.1.0(@x402/core@2.15.0)(@x402/evm@2.15.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(viem@2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))':
+    dependencies:
+      '@x402/core': 2.15.0
+      viem: 2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+    optionalDependencies:
+      '@x402/evm': 2.15.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)
 
   '@circle-fin/x402-batching@2.1.0(@x402/core@2.15.0)(@x402/evm@2.15.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10))(viem@2.52.2(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.4.3))':
     dependencies:

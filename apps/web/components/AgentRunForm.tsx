@@ -18,6 +18,7 @@ export function AgentRunForm() {
         body: JSON.stringify({ goal, budgetUsd: Number(budget) }),
       });
       const data = await res.json();
+      if (res.status === 401) { setErr("Sign in with your wallet to run the agent."); return; }
       if (!res.ok) { setErr(data.error ?? "failed"); return; }
       router.push(`/agent?run=${data.runId}`);
     } finally { setBusy(false); }
