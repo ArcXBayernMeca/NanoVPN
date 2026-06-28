@@ -25,7 +25,7 @@ vi.mock("@circle-fin/x402-batching/client", () => ({
 
 import { fundSponsored } from "../lib/funding";
 
-beforeEach(() => { sendTransaction.mockClear(); writeContract.mockClear(); deposit.mockClear(); });
+beforeEach(() => { sendTransaction.mockClear(); writeContract.mockClear(); deposit.mockClear(); waitForTransactionReceipt.mockClear(); });
 
 describe("fundSponsored", () => {
   it("sends native gas, sends the USDC grant, then deposits to Gateway", async () => {
