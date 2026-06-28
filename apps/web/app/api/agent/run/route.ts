@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { prepareRun } from "@nanovpn/agent/runner";
-import { getOrCreateUserWallet, loadSigningKey, markFunded } from "@/lib/user-wallet";
-import { fundSponsored } from "@/lib/funding";
+import { ensureProvisionedAndFunded, loadSigningKey } from "@/lib/user-wallet";
 
 export const runtime = "nodejs";
 
@@ -25,12 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const wallet = await getOrCreateUserWallet(userId);
-    if (wallet.fundedMicroUsd === 0) {
-      const key = await loadSigningKey(userId);
-      const granted = await fundSponsored(key);
-      await markFunded(userId, granted);
-    }
+    await ensureProvisionedAndFunded(userId);
     const buyerPrivateKey = await loadSigningKey(userId);
     const { runId, run } = await prepareRun({ goal, budgetUsd, mock, buyerPrivateKey });
     after(async () => { try { await run(); } catch (e) { console.error("[agent-run]", (e as Error).message); } });

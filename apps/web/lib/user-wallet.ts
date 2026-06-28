@@ -2,6 +2,7 @@ import "server-only";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { encryptSecret, decryptSecret } from "@nanovpn/core";
 import { supabaseService } from "@/lib/supabase-server";
+import { fundSponsored } from "@/lib/funding";
 
 function masterKey(): string {
   const k = process.env.WALLET_ENCRYPTION_KEY;
@@ -70,4 +71,16 @@ export async function markFunded(userId: string, microUsd: number): Promise<void
     .update({ funded_micro_usd: microUsd })
     .eq("user_id", userId);
   if (error) throw new Error(`mark funded failed: ${error.message}`);
+}
+
+/** Ensure the user has a provisioned + funded spending wallet. Funds once (when funded==0). */
+export async function ensureProvisionedAndFunded(
+  userId: string,
+): Promise<{ eoaAddress: `0x${string}`; fundedMicroUsd: number }> {
+  const wallet = await getOrCreateUserWallet(userId);
+  if (wallet.fundedMicroUsd > 0) return { eoaAddress: wallet.eoaAddress, fundedMicroUsd: wallet.fundedMicroUsd };
+  const key = await loadSigningKey(userId);
+  const granted = await fundSponsored(key);
+  await markFunded(userId, granted);
+  return { eoaAddress: wallet.eoaAddress, fundedMicroUsd: granted };
 }
