@@ -482,3 +482,10 @@ a:hover { text-decoration: underline; }
 .agent-answer__body ul, .agent-answer__body ol { margin: 10px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 5px; }
 .agent-answer__body li { line-height: 1.55; }
 .agent-answer__body li::marker { color: var(--green); }
+
+/* FetchPanel */
+.fetchpanel { display: flex; flex-direction: column; gap: 8px; }
+.fetchpanel__row { display: flex; gap: 8px; }
+.fetchpanel__url { flex: 1; min-width: 0; }
+.fetchpanel__bal { color: var(--ink); font-weight: 600; }
+.fetchpanel__result { background: var(--green-tint); color: var(--ink); border-radius: 8px; padding: 8px 10px; overflow-wrap: anywhere; }
