@@ -16,6 +16,7 @@ const SELLER_ADDRESS = process.env.SELLER_ADDRESS!;
 const SELF = process.env.EDGE_NODE_PUBLIC_URL ?? `http://localhost:${PORT}`;
 
 const EGRESS_PRICE_MICRO_USD = microUsdForRequest(Number(process.env.EDGE_NODE_PRICE_PER_REQUEST_USD ?? 0.001));
+const EDGE_NODE_PRICE_PER_GB_USD = Number(process.env.EDGE_NODE_PRICE_PER_GB_USD ?? 2.5);
 
 // The node's own outbound IP = the geo proof returned to agents. Resolve once at
 // startup (env override → public echo → "unknown"); never blocks request handling.
@@ -62,7 +63,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.startsWith("/usage/")) { streamUsage(res, registry, url.pathname.split("/")[2]); return; }
     if (url.pathname === "/settle") { await handleSettle(req, res, { registry, facilitator, sellerAddress: SELLER_ADDRESS, onSettled }); return; }
     if (url.pathname === "/egress" && req.method === "POST") {
-      await handleEgress(req, res, { facilitator, sellerAddress: SELLER_ADDRESS, priceMicroUsd: EGRESS_PRICE_MICRO_USD, egressIp: EGRESS_IP, fetchTarget });
+      await handleEgress(req, res, { facilitator, sellerAddress: SELLER_ADDRESS, priceMicroUsd: EGRESS_PRICE_MICRO_USD, pricePerGbUsd: EDGE_NODE_PRICE_PER_GB_USD, egressIp: EGRESS_IP, fetchTarget });
       return;
     }
     res.writeHead(404).end("not found");

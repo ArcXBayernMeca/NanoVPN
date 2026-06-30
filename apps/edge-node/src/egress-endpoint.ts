@@ -1,6 +1,13 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { buildRequirements, type Requirements } from "./settle-endpoint";
 import { assertPublicUrl, type LookupFn } from "./ssrf";
+import { microUsdForBytes } from "@nanovpn/core";
+
+/** Per-byte price when the request carries meterBytes=N (streaming chunk); else the flat per-request price. */
+export function egressPrice(rawUrl: string, flatMicroUsd: number, pricePerGbUsd: number): number {
+  const n = Number(new URL(rawUrl, "http://x").searchParams.get("meterBytes") ?? 0);
+  return n > 0 ? microUsdForBytes(n, pricePerGbUsd) : flatMicroUsd;
+}
 
 interface Facilitator {
   verify(payload: unknown, req: Requirements): Promise<{ isValid: boolean; invalidReason?: string; payer?: string }>;
@@ -11,6 +18,7 @@ export interface EgressDeps {
   facilitator: Facilitator;
   sellerAddress: string;
   priceMicroUsd: number;
+  pricePerGbUsd: number;
   egressIp: string;
   fetchTarget: (url: URL) => Promise<{ status: number; bytes: number }>;
   lookup?: LookupFn;
@@ -23,7 +31,8 @@ export async function handleEgress(req: IncomingMessage, res: ServerResponse, de
   try { url = await assertPublicUrl(target, deps.lookup); }
   catch (e) { res.writeHead(400, { "Content-Type": "application/json" }).end(JSON.stringify({ error: (e as Error).message })); return; }
 
-  const requirements = buildRequirements(deps.priceMicroUsd, deps.sellerAddress);
+  const priceMicroUsd = egressPrice(req.url ?? "", deps.priceMicroUsd, deps.pricePerGbUsd);
+  const requirements = buildRequirements(priceMicroUsd, deps.sellerAddress);
   const sig = req.headers["payment-signature"] as string | undefined;
 
   if (!sig) {

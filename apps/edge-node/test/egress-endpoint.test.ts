@@ -23,7 +23,7 @@ describe("handleEgress", () => {
     const fetchTarget = vi.fn();
     await handleEgress(
       { url: "/egress?url=https%3A%2F%2Fexample.com", headers: {} } as any, res as any,
-      { facilitator: {} as any, sellerAddress: SELLER, priceMicroUsd: 1000, egressIp: "203.0.113.7", fetchTarget, lookup: publicLookup },
+      { facilitator: {} as any, sellerAddress: SELLER, priceMicroUsd: 1000, pricePerGbUsd: 2.5, egressIp: "203.0.113.7", fetchTarget, lookup: publicLookup },
     );
     expect(res.statusCode).toBe(402);
     const ch = JSON.parse(Buffer.from(res.headers["PAYMENT-REQUIRED"], "base64").toString("utf8"));
@@ -37,7 +37,7 @@ describe("handleEgress", () => {
     const fetchTarget = vi.fn().mockResolvedValue({ status: 200, bytes: 4096 });
     await handleEgress(
       { url: "/egress?url=https%3A%2F%2Fexample.com", headers: { "payment-signature": sig } } as any, res as any,
-      { facilitator: facilitator as any, sellerAddress: SELLER, priceMicroUsd: 1000, egressIp: "203.0.113.7", fetchTarget, lookup: publicLookup },
+      { facilitator: facilitator as any, sellerAddress: SELLER, priceMicroUsd: 1000, pricePerGbUsd: 2.5, egressIp: "203.0.113.7", fetchTarget, lookup: publicLookup },
     );
     expect(facilitator.verify).toHaveBeenCalled();
     expect(fetchTarget).toHaveBeenCalled();
@@ -52,7 +52,7 @@ describe("handleEgress", () => {
     const fetchTarget = vi.fn().mockRejectedValue(new Error("ECONNREFUSED"));
     await handleEgress(
       { url: "/egress?url=https%3A%2F%2Fexample.com", headers: { "payment-signature": sig } } as any, res as any,
-      { facilitator: facilitator as any, sellerAddress: SELLER, priceMicroUsd: 1000, egressIp: "203.0.113.7", fetchTarget, lookup: publicLookup },
+      { facilitator: facilitator as any, sellerAddress: SELLER, priceMicroUsd: 1000, pricePerGbUsd: 2.5, egressIp: "203.0.113.7", fetchTarget, lookup: publicLookup },
     );
     expect(facilitator.verify).toHaveBeenCalled();
     expect(facilitator.settle).not.toHaveBeenCalled(); // never charged
@@ -65,7 +65,7 @@ describe("handleEgress", () => {
     const fetchTarget = vi.fn().mockResolvedValue({ status: 503, bytes: 120 });
     await handleEgress(
       { url: "/egress?url=https%3A%2F%2Fexample.com", headers: { "payment-signature": sig } } as any, res as any,
-      { facilitator: facilitator as any, sellerAddress: SELLER, priceMicroUsd: 1000, egressIp: "203.0.113.7", fetchTarget, lookup: publicLookup },
+      { facilitator: facilitator as any, sellerAddress: SELLER, priceMicroUsd: 1000, pricePerGbUsd: 2.5, egressIp: "203.0.113.7", fetchTarget, lookup: publicLookup },
     );
     expect(facilitator.settle).toHaveBeenCalled();
     expect(res.statusCode).toBe(200);
@@ -81,7 +81,7 @@ describe("handleEgress", () => {
     const fetchTarget = vi.fn().mockResolvedValue({ status: 200, bytes: 512 });
     await handleEgress(
       { url: "/egress?url=https%3A%2F%2Fexample.com", headers: { "payment-signature": sig } } as any, res as any,
-      { facilitator: facilitator as any, sellerAddress: SELLER, priceMicroUsd: 1000, egressIp: "203.0.113.7", fetchTarget, lookup: publicLookup },
+      { facilitator: facilitator as any, sellerAddress: SELLER, priceMicroUsd: 1000, pricePerGbUsd: 2.5, egressIp: "203.0.113.7", fetchTarget, lookup: publicLookup },
     );
     expect(facilitator.verify).toHaveBeenCalled();
     expect(fetchTarget).toHaveBeenCalled();
@@ -94,7 +94,7 @@ describe("handleEgress", () => {
     const fetchTarget = vi.fn();
     await handleEgress(
       { url: "/egress?url=http%3A%2F%2Finternal", headers: { "payment-signature": sig } } as any, res as any,
-      { facilitator: okFacilitator() as any, sellerAddress: SELLER, priceMicroUsd: 1000, egressIp: "203.0.113.7", fetchTarget, lookup: async () => "10.0.0.5" },
+      { facilitator: okFacilitator() as any, sellerAddress: SELLER, priceMicroUsd: 1000, pricePerGbUsd: 2.5, egressIp: "203.0.113.7", fetchTarget, lookup: async () => "10.0.0.5" },
     );
     expect(res.statusCode).toBe(400);
     expect(fetchTarget).not.toHaveBeenCalled();
