@@ -513,6 +513,7 @@ a:hover { text-decoration: underline; }
 .streampanel__amt { width: 56px; background: transparent; border: 0; color: #e8f0ec; font-size: 15px; padding: 9px 0; outline: none; -moz-appearance: textfield; }
 .streampanel__amt::-webkit-outer-spin-button, .streampanel__amt::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .streampanel__fundbtn { flex: 1; }
+.streampanel__verified { color: var(--green); font-weight: 600; }
 .btn--secondary { background: #1e2a25; color: #e8f0ec; border: 1px solid var(--green-line); }
 .btn--secondary:hover:not(:disabled) { border-color: var(--green); }
 .btn--secondary:disabled { opacity: 0.5; }
