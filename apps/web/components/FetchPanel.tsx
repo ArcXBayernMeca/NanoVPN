@@ -102,11 +102,14 @@ export function FetchPanel({ node, streaming, intensity, onToggleStream, onInten
         <p className="streampanel__bal">Balance <strong>{formatUsd(remaining)}</strong> <span className="streampanel__sub">of {formatUsd(balance.fundedMicroUsd)} funded</span></p>
       )}
       <div className="streampanel__fund">
-        <label className="streampanel__sub">Fund from your wallet (USDC)</label>
+        <span className="streampanel__sub">Top up your spending wallet (USDC)</span>
         <div className="streampanel__fundrow">
-          <input className="streampanel__amt" type="number" min="0.1" step="0.1" value={amount} onChange={(e) => setAmount(e.target.value)} />
-          <button className="btn btn--secondary" disabled={funding || !isConnected || !balance} onClick={selfFund}>
-            {funding ? "Funding…" : "Fund from your wallet"}
+          <div className="streampanel__amtwrap">
+            <span className="streampanel__amtcur">$</span>
+            <input className="streampanel__amt" type="number" min="0.1" step="0.1" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Top up amount" />
+          </div>
+          <button className="btn btn--secondary streampanel__fundbtn" disabled={funding || !isConnected || !balance} onClick={selfFund}>
+            {funding ? "Funding…" : "Fund"}
           </button>
         </div>
         {fundErr && <p className="streampanel__warn">{fundErr}</p>}

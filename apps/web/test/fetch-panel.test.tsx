@@ -44,8 +44,8 @@ describe("FetchPanel streaming", () => {
 
   it("self-funds: transfers USDC to the spending EOA then posts /api/self-fund", async () => {
     render(<FetchPanel node={node} streaming={false} intensity={"medium"} onToggleStream={noop} onIntensity={noop} />);
-    await waitFor(() => expect(screen.getByRole("button", { name: /Fund from your wallet/i })).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: /Fund from your wallet/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Fund" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Fund" }));
     await waitFor(() => expect(writeContractAsync).toHaveBeenCalled());
     expect(writeContractAsync.mock.calls[0][0]).toMatchObject({ functionName: "transfer", args: ["0xeoa", 1_000_000n] });
     await waitFor(() => expect((global.fetch as any).mock.calls.some((c: any[]) => String(c[0]).endsWith("/api/self-fund"))).toBe(true));
@@ -53,10 +53,10 @@ describe("FetchPanel streaming", () => {
 
   it("zero-amount guard: does not call writeContractAsync and shows an error when amount is 0", async () => {
     render(<FetchPanel node={node} streaming={false} intensity={"medium"} onToggleStream={noop} onIntensity={noop} />);
-    await waitFor(() => expect(screen.getByRole("button", { name: /Fund from your wallet/i })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Fund" })).toBeTruthy());
     const amtInput = document.querySelector(".streampanel__amt") as HTMLInputElement;
     fireEvent.change(amtInput, { target: { value: "0" } });
-    fireEvent.click(screen.getByRole("button", { name: /Fund from your wallet/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Fund" }));
     expect(writeContractAsync).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.getByText(/Enter an amount greater than 0/i)).toBeTruthy());
   });

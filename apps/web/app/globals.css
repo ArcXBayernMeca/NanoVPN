@@ -505,9 +505,14 @@ a:hover { text-decoration: underline; }
 .streampanel__bal { font-size: 14px; color: #e8f0ec; }
 .streampanel__bal strong { color: var(--green); }
 .streampanel__sub { font-size: 12px; color: #9fb4ab; }
-.streampanel__fund { display: flex; flex-direction: column; gap: 6px; }
-.streampanel__fundrow { display: flex; gap: 8px; }
-.streampanel__amt { width: 84px; }
+.streampanel__fund { display: flex; flex-direction: column; gap: 8px; }
+.streampanel__fundrow { display: flex; gap: 8px; align-items: stretch; }
+.streampanel__amtwrap { display: flex; align-items: center; gap: 4px; background: #11201a; border: 1px solid var(--green-line); border-radius: 8px; padding: 0 11px; transition: border-color 0.15s; }
+.streampanel__amtwrap:focus-within { border-color: var(--green); }
+.streampanel__amtcur { color: #9fb4ab; font-size: 15px; }
+.streampanel__amt { width: 56px; background: transparent; border: 0; color: #e8f0ec; font-size: 15px; padding: 9px 0; outline: none; -moz-appearance: textfield; }
+.streampanel__amt::-webkit-outer-spin-button, .streampanel__amt::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.streampanel__fundbtn { flex: 1; }
 .btn--secondary { background: #1e2a25; color: #e8f0ec; border: 1px solid var(--green-line); }
 .btn--secondary:hover:not(:disabled) { border-color: var(--green); }
 .btn--secondary:disabled { opacity: 0.5; }
