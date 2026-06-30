@@ -1,20 +1,14 @@
 app = "nanovpn-edge"
-primary_region = "nrt"   # Tokyo; add fra/ewr later for multi-node (Layer 3)
+primary_region = "nrt"
 
 [build]
   dockerfile = "apps/edge-node/Dockerfile"
 
-# Single port: the edge-node serves HTTP (health/register/SSE/settle) AND the
-# HTTP CONNECT proxy on 8080. Exposed as a raw-TCP service so CONNECT tunnels
-# through untouched; Fly terminates TLS at :443 and forwards plaintext to :8080.
-[[services]]
+# HTTP service (terminates TLS, speaks HTTP) so Fly-Prefer-Region, fly-replay, and autostart
+# work. The product uses HTTP POST /egress only; raw-CONNECT (orphaned api/browse) is retired.
+[http_service]
   internal_port = 8080
-  protocol = "tcp"
-  auto_stop_machines = false
-
-  [[services.ports]]
-    port = 443
-    handlers = ["tls"]
-
-  [[services.ports]]
-    port = 80
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
