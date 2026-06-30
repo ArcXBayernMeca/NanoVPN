@@ -6,22 +6,18 @@ import type { NodeListing } from "@nanovpn/core";
 import { ARC } from "@nanovpn/core";
 import { formatUsd } from "./format";
 import { SettlementLog } from "./SettlementLog";
+import { intervalForIntensity, type Intensity } from "@/lib/traffic";
 
-const PRESETS = [
-  "https://api.ipify.org?format=json",
-  "https://ipinfo.io/json",
-  "https://httpbin.org/headers",
-];
-
-type Result = { status: number; bytes: number; egressIp: string; geo: { country: string; city: string }; amountMicroUsd: number };
-
-export function FetchPanel({ node }: { node: NodeListing }) {
+export function FetchPanel({ node, streaming, intensity, onToggleStream, onIntensity }: {
+  node: NodeListing; streaming: boolean; intensity: Intensity;
+  onToggleStream(): void; onIntensity(i: Intensity): void;
+}) {
   const [balance, setBalance] = useState<{ eoaAddress: string; fundedMicroUsd: number; spentMicroUsd: number; fundingStatus: string } | null>(null);
-  const [url, setUrl] = useState(PRESETS[0]);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [result, setResult] = useState<Result | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [bytesUsed, setBytesUsed] = useState(0);
+  const [streamSpent, setStreamSpent] = useState(0);
+  const [egress, setEgress] = useState<{ ip: string; geo: { city: string; country: string } } | null>(null);
+  const [streamErr, setStreamErr] = useState<string | null>(null);
 
   const { isConnected } = useAccount();
   const { writeContractAsync } = useWriteContract();
@@ -34,25 +30,35 @@ export function FetchPanel({ node }: { node: NodeListing }) {
     const d = await fetch("/api/wallet").then((r) => (r.ok ? r.json() : null)).catch(() => null);
     if (d) setBalance(d);
   }
+  useEffect(() => { refreshWallet(); }, []);
 
+  // Streaming loop: while `streaming`, drive a metered chunk per tick (mirrors lib/traffic.ts).
   useEffect(() => {
-    refreshWallet();
-  }, []);
-
-  async function go() {
-    setBusy(true); setErr(null);
-    try {
-      const r = await fetch("/api/egress", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nodeId: node.id, url, sessionId }),
-      });
-      const d = await r.json();
-      if (!r.ok) { setErr(d.error ?? "fetch failed"); return; }
-      setSessionId(d.sessionId);
-      setResult(d);
-      setBalance((b) => (b ? { ...b, spentMicroUsd: b.spentMicroUsd + d.amountMicroUsd } : b));
-    } finally { setBusy(false); }
-  }
+    if (!streaming) return;
+    const ctrl = new AbortController();
+    let inFlight = false;
+    const tick = async () => {
+      if (inFlight || ctrl.signal.aborted) return;
+      inFlight = true;
+      try {
+        const r = await fetch("/api/egress", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nodeId: node.id, sessionId, stream: true }), signal: ctrl.signal,
+        });
+        const d = await r.json();
+        if (!r.ok) { setStreamErr(d.error ?? "stream paused"); return; }
+        setStreamErr(null);
+        setSessionId(d.sessionId);
+        setBytesUsed((b) => b + d.bytes);
+        setStreamSpent((s) => s + d.amountMicroUsd);
+        setEgress({ ip: d.egressIp, geo: d.geo });
+        setBalance((b) => (b ? { ...b, spentMicroUsd: b.spentMicroUsd + d.amountMicroUsd } : b));
+      } catch { /* aborted / soft-fail */ } finally { inFlight = false; }
+    };
+    void tick();
+    const id = setInterval(() => void tick(), intervalForIntensity(intensity));
+    return () => { ctrl.abort(); clearInterval(id); };
+  }, [streaming, intensity, sessionId, node.id]);
 
   async function selfFund() {
     if (!(Number(amount) > 0)) { setFundErr("Enter an amount greater than 0"); return; }
@@ -72,34 +78,40 @@ export function FetchPanel({ node }: { node: NodeListing }) {
   }
 
   const remaining = balance ? balance.fundedMicroUsd - balance.spentMicroUsd : 0;
+  const RATES: Intensity[] = ["light", "medium", "heavy"];
   return (
-    <div className="fetchpanel">
+    <div className="streampanel">
+      <div className="streampanel__counter">
+        <div className="streampanel__spend">{formatUsd(streamSpent)}</div>
+        <div className="streampanel__label">STREAMING SPEND</div>
+        <div className="streampanel__data">{(bytesUsed / 1_000_000).toFixed(2)} MB used</div>
+      </div>
+      {egress && <p className="streampanel__egress">egress <strong>{egress.ip}</strong> — {egress.geo.city}, {egress.geo.country}</p>}
+
+      <button className="btn btn--primary streampanel__toggle" onClick={onToggleStream}>
+        {streaming ? "Stop streaming" : "Start streaming"}
+      </button>
+      <div className="streampanel__rates">
+        {RATES.map((i) => (
+          <button key={i} className={`btn btn--ghost ${intensity === i ? "is-active" : ""}`} onClick={() => onIntensity(i)}>{i}</button>
+        ))}
+      </div>
+      {streamErr && <p className="streampanel__warn">⚠ {streamErr}</p>}
+
       {balance && (
-        <p className="fetchpanel__bal">Balance {formatUsd(remaining)} <span className="hint">of {formatUsd(balance.fundedMicroUsd)} granted</span></p>
+        <p className="streampanel__bal">Balance <strong>{formatUsd(remaining)}</strong> <span className="streampanel__sub">of {formatUsd(balance.fundedMicroUsd)} funded</span></p>
       )}
-      <div className="fetchpanel__fund">
-        <span className="hint">Fund from your wallet (USDC):</span>
-        <input className="fetchpanel__amt" type="number" min="0.1" step="0.1" value={amount} onChange={(e) => setAmount(e.target.value)} />
-        <button className="btn" disabled={funding || !isConnected || !balance} onClick={selfFund}>
-          {funding ? "Funding…" : "Fund from your wallet"}
-        </button>
-      </div>
-      {fundErr && <p className="hint" style={{ color: "var(--amber)" }}>{fundErr}</p>}
-      <div className="fetchpanel__row">
-        <select className="fetchpanel__url" value={url} onChange={(e) => setUrl(e.target.value)}>
-          {PRESETS.map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
-        <button className="btn btn--primary" disabled={busy} onClick={go}>
-          {busy ? "Fetching…" : `Fetch through ${node.geo.city}`}
-        </button>
-      </div>
-      {err && <p className="hint" style={{ color: "var(--amber)" }}>{err}</p>}
-      {result && (
-        <div className="fetchpanel__result">
-          <p>HTTP {result.status} · {result.bytes} B · {formatUsd(result.amountMicroUsd)}</p>
-          <p>egress <strong>{result.egressIp}</strong> — {result.geo.city}, {result.geo.country}</p>
+      <div className="streampanel__fund">
+        <label className="streampanel__sub">Fund from your wallet (USDC)</label>
+        <div className="streampanel__fundrow">
+          <input className="streampanel__amt" type="number" min="0.1" step="0.1" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <button className="btn btn--secondary" disabled={funding || !isConnected || !balance} onClick={selfFund}>
+            {funding ? "Funding…" : "Fund from your wallet"}
+          </button>
         </div>
-      )}
+        {fundErr && <p className="streampanel__warn">{fundErr}</p>}
+      </div>
+
       {sessionId && <SettlementLog sessionId={sessionId} />}
     </div>
   );
