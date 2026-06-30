@@ -8,9 +8,11 @@ const NODES = [
 
 function fakeBuyer() {
   const calls: string[] = [];
+  const opts: any[] = [];
   return {
     calls,
-    async pay<T>(url: string) { calls.push(url); return { data: { status: 200, bytes: 1024, egressIp: "1.2.3.4" } as T, amount: 700n, transaction: "tx-1", status: 200 }; },
+    opts,
+    async pay<T>(url: string, o?: any) { calls.push(url); opts.push(o); return { data: { status: 200, bytes: 1024, egressIp: "1.2.3.4" } as T, amount: 700n, transaction: "tx-1", status: 200 }; },
     async getBalances() { return { wallet: { formatted: "10" }, gateway: { formattedAvailable: "5" } }; },
   };
 }
@@ -41,6 +43,12 @@ describe("payRequest is node-aware", () => {
   it("declares nodeId required on the payRequest tool", () => {
     const pay = TOOL_DEFS.find((t) => t.name === "payRequest")!;
     expect(pay.input_schema.required).toEqual(expect.arrayContaining(["nodeId", "url"]));
+  });
+  it("pins egress to the chosen node's Fly region via headers", async () => {
+    const buyer = fakeBuyer();
+    const ex = makeExecutors({ nodesReader: async () => NODES, buyer: buyer as any });
+    await ex.payRequest({ nodeId: "mumbai-1", url: "https://x.test/a" });
+    expect(buyer.opts[0].headers).toMatchObject({ "fly-prefer-region": "bom", "x-nanovpn-region": "bom" });
   });
 });
 

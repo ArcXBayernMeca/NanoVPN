@@ -20,11 +20,25 @@ export interface EgressDeps {
   priceMicroUsd: number;
   pricePerGbUsd: number;
   egressIp: string;
+  flyRegion?: string;
   fetchTarget: (url: URL) => Promise<{ status: number; bytes: number }>;
   lookup?: LookupFn;
 }
 
 export async function handleEgress(req: IncomingMessage, res: ServerResponse, deps: EgressDeps) {
+  // Deterministic region pinning: if this machine isn't the requested region, ask Fly to
+  // replay the request to the right region (which also wakes it from scale-to-zero). Fly's
+  // proxy consumes this header — the x402 client never sees the 204. Guard against loops via
+  // fly-replay-src (set by Fly on an already-replayed request).
+  const wantRegion = req.headers["x-nanovpn-region"] as string | undefined;
+  // Only reflect a plausible Fly region code (3 lowercase letters) into the fly-replay header —
+  // the header is attacker-suppliable on this public endpoint; a malformed value is ignored (process normally).
+  const wantValid = typeof wantRegion === "string" && /^[a-z]{3}$/.test(wantRegion);
+  if (wantValid && deps.flyRegion && wantRegion !== deps.flyRegion && !req.headers["fly-replay-src"]) {
+    res.writeHead(204, { "fly-replay": `region=${wantRegion}` }).end();
+    return;
+  }
+
   const target = new URL(req.url ?? "", "http://x").searchParams.get("url") ?? "";
 
   let url: URL;
@@ -68,5 +82,5 @@ export async function handleEgress(req: IncomingMessage, res: ServerResponse, de
   res.writeHead(200, {
     "Content-Type": "application/json",
     "PAYMENT-RESPONSE": Buffer.from(JSON.stringify({ success: true, transaction: settled.transaction, network: requirements.network, payer: settled.payer })).toString("base64"),
-  }).end(JSON.stringify({ status: result.status, bytes: result.bytes, egressIp: deps.egressIp, transaction: settled.transaction }));
+  }).end(JSON.stringify({ status: result.status, bytes: result.bytes, egressIp: deps.egressIp, region: deps.flyRegion ?? null, transaction: settled.transaction }));
 }

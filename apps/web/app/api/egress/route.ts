@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GatewayClient } from "@circle-fin/x402-batching/client";
-import { ARC } from "@nanovpn/core";
+import { ARC, NODE_REGION } from "@nanovpn/core";
 import { ensureProvisionedAndFunded, loadSigningKey } from "@/lib/user-wallet";
 import { getOrCreateEgressSession } from "@/lib/egress-session";
 import { supabaseService } from "@/lib/supabase-server";
@@ -44,7 +44,15 @@ export async function POST(req: NextRequest) {
     const nodeEgressUrl = stream
       ? `${node.proxy_url}/egress?url=${encodeURIComponent(url)}&meterBytes=${STREAM_CHUNK_BYTES}`
       : `${node.proxy_url}/egress?url=${encodeURIComponent(url)}`;
-    const res = await buyer.pay<{ status: number; bytes: number; egressIp: string }>(nodeEgressUrl, { method: "POST" });
+    // Pin egress to the picked node's real Fly region (Prefer-Region routes; the node's
+    // fly-replay enforces). region is undefined only for an unmapped node → send no preference.
+    const region = NODE_REGION[nodeId];
+    const headers: Record<string, string> = region
+      ? { "fly-prefer-region": region, "x-nanovpn-region": region }
+      : {};
+    const res = await buyer.pay<{ status: number; bytes: number; egressIp: string; region?: string }>(
+      nodeEgressUrl, { method: "POST", headers },
+    );
 
     await db.from("settlements").insert({
       session_id: sessionId, settlement_uuid: res.transaction, amount_micro_usd: Number(res.amount),
@@ -54,6 +62,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       sessionId, status: res.data.status, bytes: res.data.bytes, egressIp: res.data.egressIp,
       geo: { country: node.country, city: node.city, lat: node.lat, lng: node.lng },
+      region: res.data.region ?? null,
+      regionVerified: region ? res.data.region === region : false,
       transaction: res.transaction, amountMicroUsd: Number(res.amount),
     });
   } catch (e) {

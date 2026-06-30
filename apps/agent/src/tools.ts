@@ -1,3 +1,5 @@
+import { NODE_REGION } from "@nanovpn/core";
+
 export const TOOL_DEFS = [
   {
     name: "listNodes",
@@ -30,7 +32,7 @@ export interface Executors {
 }
 
 interface Buyer {
-  pay<T>(url: string, opts?: { method?: string }): Promise<{ data: T; amount: bigint; transaction: string; status: number }>;
+  pay<T>(url: string, opts?: { method?: string; headers?: Record<string, string> }): Promise<{ data: T; amount: bigint; transaction: string; status: number }>;
   getBalances(): Promise<{ wallet: { formatted: string }; gateway: { formattedAvailable: string } }>;
 }
 
@@ -50,8 +52,13 @@ export function makeExecutors(deps: {
     async payRequest({ nodeId, url }) {
       const node = (await deps.nodesReader()).find((n) => n.id === nodeId);
       if (!node) throw new Error(`unknown node ${nodeId}`);
+      // Pin egress to the node's real Fly region (Prefer-Region routes; node fly-replay enforces).
+      const region = NODE_REGION[node.id];
+      const headers: Record<string, string> = region
+        ? { "fly-prefer-region": region, "x-nanovpn-region": region }
+        : {};
       const res = await deps.buyer.pay<{ status: number; bytes: number; egressIp: string }>(
-        `${node.proxy_url}/egress?url=${encodeURIComponent(url)}`, { method: "POST" },
+        `${node.proxy_url}/egress?url=${encodeURIComponent(url)}`, { method: "POST", headers },
       );
       return { status: res.data.status, bytes: res.data.bytes, egressIp: res.data.egressIp, amountMicroUsd: Number(res.amount), transaction: res.transaction, nodeId };
     },

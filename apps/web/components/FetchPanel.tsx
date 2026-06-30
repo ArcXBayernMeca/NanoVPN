@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useWriteContract, usePublicClient, useAccount } from "wagmi";
 import { parseUnits, erc20Abi } from "viem";
 import type { NodeListing } from "@nanovpn/core";
-import { ARC } from "@nanovpn/core";
+import { ARC, FLY_REGION_CITY } from "@nanovpn/core";
 import { formatUsd } from "./format";
 import { SettlementLog } from "./SettlementLog";
 import { intervalForIntensity, type Intensity } from "@/lib/traffic";
@@ -16,7 +16,7 @@ export function FetchPanel({ node, streaming, intensity, onToggleStream, onInten
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [bytesUsed, setBytesUsed] = useState(0);
   const [streamSpent, setStreamSpent] = useState(0);
-  const [egress, setEgress] = useState<{ ip: string; geo: { city: string; country: string } } | null>(null);
+  const [egress, setEgress] = useState<{ ip: string; geo: { city: string; country: string }; verified: boolean; region: string | null } | null>(null);
   const [streamErr, setStreamErr] = useState<string | null>(null);
 
   const { isConnected } = useAccount();
@@ -51,7 +51,7 @@ export function FetchPanel({ node, streaming, intensity, onToggleStream, onInten
         setSessionId(d.sessionId);
         setBytesUsed((b) => b + d.bytes);
         setStreamSpent((s) => s + d.amountMicroUsd);
-        setEgress({ ip: d.egressIp, geo: d.geo });
+        setEgress({ ip: d.egressIp, geo: d.geo, verified: !!d.regionVerified, region: d.region ?? null });
         setBalance((b) => (b ? { ...b, spentMicroUsd: b.spentMicroUsd + d.amountMicroUsd } : b));
       } catch { /* aborted / soft-fail */ } finally { inFlight = false; }
     };
@@ -86,7 +86,16 @@ export function FetchPanel({ node, streaming, intensity, onToggleStream, onInten
         <div className="streampanel__label">STREAMING SPEND</div>
         <div className="streampanel__data">{(bytesUsed / 1_000_000).toFixed(2)} MB used</div>
       </div>
-      {egress && <p className="streampanel__egress">egress <strong>{egress.ip}</strong> — {egress.geo.city}, {egress.geo.country}</p>}
+      {egress && (
+        <p className="streampanel__egress">
+          egress <strong>{egress.ip}</strong> —{" "}
+          {egress.verified ? (
+            <>{egress.geo.city}, {egress.geo.country} <span className="streampanel__verified">✓ verified</span></>
+          ) : (
+            <>{egress.region ? (FLY_REGION_CITY[egress.region] ?? egress.region) : `${egress.geo.city}, ${egress.geo.country}`}</>
+          )}
+        </p>
+      )}
 
       <button className="btn btn--primary streampanel__toggle" onClick={onToggleStream}>
         {streaming ? "Stop streaming" : "Start streaming"}

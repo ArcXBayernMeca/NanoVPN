@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 const { ensureProvisionedAndFunded, loadSigningKey, pay } = vi.hoisted(() => ({
   ensureProvisionedAndFunded: vi.fn(async () => ({ eoaAddress: "0xeoa", fundedMicroUsd: 100_000, status: "funded" })),
   loadSigningKey: vi.fn(async () => "0xKEY"),
-  pay: vi.fn(async () => ({ data: { status: 200, bytes: 42, egressIp: "1.2.3.4" }, amount: 1000n, transaction: "uuid-1", status: 200 })),
+  pay: vi.fn(async () => ({ data: { status: 200, bytes: 42, egressIp: "1.2.3.4", region: "nrt" }, amount: 1000n, transaction: "uuid-1", status: 200 })),
 }));
 
 vi.mock("@/lib/user-wallet", () => ({ ensureProvisionedAndFunded, loadSigningKey }));
@@ -56,8 +56,11 @@ describe("POST /api/egress", () => {
     expect(await res.json()).toMatchObject({
       sessionId: "sess-1", status: 200, bytes: 42, egressIp: "1.2.3.4",
       geo: { country: "Japan", city: "Tokyo" }, transaction: "uuid-1", amountMicroUsd: 1000,
+      region: "nrt", regionVerified: true,
     });
-    expect(pay).toHaveBeenCalledWith("https://node/egress?url=https%3A%2F%2Fex.com", { method: "POST" });
+    expect(pay).toHaveBeenCalledWith("https://node/egress?url=https%3A%2F%2Fex.com", {
+      method: "POST", headers: { "fly-prefer-region": "nrt", "x-nanovpn-region": "nrt" },
+    });
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({
       session_id: "sess-1", settlement_uuid: "uuid-1", amount_micro_usd: 1000, payer: "0xeoa", payee: "0xSELLER", network: "eip155:5042002", status: "received",
     }));
