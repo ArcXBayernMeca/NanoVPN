@@ -62,4 +62,12 @@ describe("POST /api/egress", () => {
       session_id: "sess-1", settlement_uuid: "uuid-1", amount_micro_usd: 1000, payer: "0xeoa", payee: "0xSELLER", network: "eip155:5042002", status: "received",
     }));
   });
+  it("stream mode prices a sized chunk per-byte (meterBytes on the node URL)", async () => {
+    const res = await POST(req({ nodeId: "tokyo-1", stream: true }, "siwe-address=0xABC"));
+    expect(res.status).toBe(200);
+    const calledUrl = pay.mock.calls[0][0] as string;
+    expect(calledUrl).toContain("/egress?url=");
+    expect(calledUrl).toContain("meterBytes=262144");
+    expect(calledUrl).toContain(encodeURIComponent("speed.cloudflare.com/__down?bytes=262144"));
+  });
 });
