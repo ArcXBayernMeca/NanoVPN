@@ -33,7 +33,7 @@ const fakeDb = {
 };
 vi.mock("@/lib/supabase-server", () => ({ supabaseService: () => fakeDb }));
 
-import { getOrCreateUserWallet, loadSigningKey, markFunded } from "../lib/user-wallet";
+import { getOrCreateUserWallet, loadSigningKey } from "../lib/user-wallet";
 
 beforeEach(() => {
   rows.length = 0;
@@ -57,18 +57,6 @@ describe("user-wallet", () => {
     const key = await loadSigningKey("0xuser");
     expect(key).toMatch(/^0x[0-9a-fA-F]{64}$/);
     expect(rows[0].encrypted_private_key).not.toContain(key); // stored encrypted, not plaintext
-  });
-
-  it("markFunded updates the row", async () => {
-    await getOrCreateUserWallet("0xuser");
-    await markFunded("0xuser", 500_000);
-    expect(rows[0].funded_micro_usd).toBe(500_000);
-  });
-
-  it("markFunded rejects when the DB returns an error", async () => {
-    await getOrCreateUserWallet("0xuser");
-    forceUpdateError = { message: "boom" };
-    await expect(markFunded("0xuser", 100)).rejects.toThrow("mark funded failed: boom");
   });
 
   it("getOrCreateUserWallet rejects when maybeSingle returns a DB error", async () => {

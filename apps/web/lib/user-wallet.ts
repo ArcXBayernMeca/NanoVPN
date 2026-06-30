@@ -64,17 +64,6 @@ export async function loadSigningKey(userId: string): Promise<`0x${string}`> {
   return decryptSecret(data.encrypted_private_key, masterKey()) as `0x${string}`;
 }
 
-/** SETS (overwrites) funded_micro_usd — not an increment. Called once per wallet in the fund-once flow; a future refill path must NOT reuse this blindly. */
-export async function markFunded(userId: string, microUsd: number): Promise<void> {
-  userId = userId.toLowerCase();
-  const db = supabaseService();
-  const { error } = await db
-    .from("user_wallets")
-    .update({ funded_micro_usd: microUsd })
-    .eq("user_id", userId);
-  if (error) throw new Error(`mark funded failed: ${error.message}`);
-}
-
 const MAX_SPONSORED_WALLETS = () => Number(process.env.MAX_SPONSORED_WALLETS) || 100;
 
 export interface ProvisionResult {
