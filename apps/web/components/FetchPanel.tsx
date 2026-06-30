@@ -55,6 +55,7 @@ export function FetchPanel({ node }: { node: NodeListing }) {
   }
 
   async function selfFund() {
+    if (!(Number(amount) > 0)) { setFundErr("Enter an amount greater than 0"); return; }
     if (!balance || !publicClient) return;
     setFunding(true); setFundErr(null);
     try {

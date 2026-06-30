@@ -37,6 +37,15 @@ describe("FetchPanel", () => {
     expect(screen.getByText(/tape:sess-1/)).toBeTruthy();                    // SettlementLog wired with the session
   });
 
+  it("rejects a zero amount: shows error and never calls writeContractAsync", async () => {
+    render(<FetchPanel node={node} />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Fund from your wallet/i })).toBeTruthy());
+    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: /Fund from your wallet/i }));
+    await waitFor(() => expect(screen.getByText(/Enter an amount greater than 0/i)).toBeTruthy());
+    expect(writeContractAsync).not.toHaveBeenCalled();
+  });
+
   it("self-funds: transfers USDC to the spending EOA then posts /api/self-fund", async () => {
     render(<FetchPanel node={node} />);
     await waitFor(() => expect(screen.getByRole("button", { name: /Fund from your wallet/i })).toBeTruthy());
