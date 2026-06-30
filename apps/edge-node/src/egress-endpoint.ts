@@ -31,7 +31,10 @@ export async function handleEgress(req: IncomingMessage, res: ServerResponse, de
   // proxy consumes this header — the x402 client never sees the 204. Guard against loops via
   // fly-replay-src (set by Fly on an already-replayed request).
   const wantRegion = req.headers["x-nanovpn-region"] as string | undefined;
-  if (wantRegion && deps.flyRegion && wantRegion !== deps.flyRegion && !req.headers["fly-replay-src"]) {
+  // Only reflect a plausible Fly region code (3 lowercase letters) into the fly-replay header —
+  // the header is attacker-suppliable on this public endpoint; a malformed value is ignored (process normally).
+  const wantValid = typeof wantRegion === "string" && /^[a-z]{3}$/.test(wantRegion);
+  if (wantValid && deps.flyRegion && wantRegion !== deps.flyRegion && !req.headers["fly-replay-src"]) {
     res.writeHead(204, { "fly-replay": `region=${wantRegion}` }).end();
     return;
   }

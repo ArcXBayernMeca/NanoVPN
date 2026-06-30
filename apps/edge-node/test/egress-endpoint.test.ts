@@ -126,4 +126,17 @@ describe("handleEgress", () => {
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body).region).toBe("fra");
   });
+
+  it("does not replay when x-nanovpn-region is malformed (processes normally)", async () => {
+    const res = fakeRes();
+    const facilitator = okFacilitator();
+    const fetchTarget = vi.fn().mockResolvedValue({ status: 200, bytes: 4096 });
+    await handleEgress(
+      { url: "/egress?url=https%3A%2F%2Fexample.com", headers: { "payment-signature": sig, "x-nanovpn-region": "not-a-region" } } as any, res as any,
+      { facilitator: facilitator as any, sellerAddress: SELLER, priceMicroUsd: 1000, pricePerGbUsd: 2.5, egressIp: "203.0.113.7", fetchTarget, lookup: publicLookup, flyRegion: "nrt" },
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["fly-replay"]).toBeUndefined();
+    expect(fetchTarget).toHaveBeenCalled();
+  });
 });
