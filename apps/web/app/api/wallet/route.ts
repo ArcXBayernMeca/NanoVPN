@@ -14,7 +14,9 @@ export async function GET(req: NextRequest) {
       .from("settlements").select("amount_micro_usd").eq("payer", wallet.eoaAddress);
     if (error) throw new Error(`spend query failed: ${error.message}`);
     const spentMicroUsd = (data ?? []).reduce((s: number, r: any) => s + Number(r.amount_micro_usd), 0);
-    return NextResponse.json({ ...wallet, spentMicroUsd });
+    return NextResponse.json({
+      eoaAddress: wallet.eoaAddress, fundedMicroUsd: wallet.fundedMicroUsd, spentMicroUsd, fundingStatus: wallet.status,
+    });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

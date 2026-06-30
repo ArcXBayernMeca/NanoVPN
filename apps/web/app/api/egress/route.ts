@@ -27,7 +27,11 @@ export async function POST(req: NextRequest) {
 
   try {
     // payer EOA comes from the same user_wallets row as the signing key (loadSigningKey) — they always match.
-    const { eoaAddress: eoa } = await ensureProvisionedAndFunded(userId);
+    const prov = await ensureProvisionedAndFunded(userId);
+    if (prov.status !== "funded") {
+      return NextResponse.json({ error: "demo grant capacity reached — self-funding coming soon" }, { status: 503 });
+    }
+    const eoa = prov.eoaAddress;
     const key = await loadSigningKey(userId);
     const sessionId = await getOrCreateEgressSession(userId, nodeId, body?.sessionId);
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 const { ensureProvisionedAndFunded, loadSigningKey, pay } = vi.hoisted(() => ({
-  ensureProvisionedAndFunded: vi.fn(async () => ({ eoaAddress: "0xeoa", fundedMicroUsd: 500_000 })),
+  ensureProvisionedAndFunded: vi.fn(async () => ({ eoaAddress: "0xeoa", fundedMicroUsd: 100_000, status: "funded" })),
   loadSigningKey: vi.fn(async () => "0xKEY"),
   pay: vi.fn(async () => ({ data: { status: 200, bytes: 42, egressIp: "1.2.3.4" }, amount: 1000n, transaction: "uuid-1", status: 200 })),
 }));
@@ -43,6 +43,12 @@ describe("POST /api/egress", () => {
     const res = await POST(req({ nodeId: "tokyo-1", url: "https://ex.com" }, "siwe-address=0xABC"));
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: "seller not configured" });
+  });
+  it("503s when the sponsor grant cap is reached", async () => {
+    ensureProvisionedAndFunded.mockResolvedValueOnce({ eoaAddress: "0xeoa", fundedMicroUsd: 0, status: "capped" });
+    const res = await POST(req({ nodeId: "tokyo-1", url: "https://ex.com" }, "siwe-address=0xABC"));
+    expect(res.status).toBe(503);
+    expect(pay).not.toHaveBeenCalled();
   });
   it("pays via the user's EOA, records a settlement, returns the result", async () => {
     const res = await POST(req({ nodeId: "tokyo-1", url: "https://ex.com" }, "siwe-address=0xABC"));

@@ -24,7 +24,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await ensureProvisionedAndFunded(userId);
+    const prov = await ensureProvisionedAndFunded(userId);
+    if (prov.status !== "funded") {
+      return NextResponse.json({ error: "demo grant capacity reached — self-funding coming soon" }, { status: 503 });
+    }
     const buyerPrivateKey = await loadSigningKey(userId);
     const { runId, run } = await prepareRun({ goal, budgetUsd, mock, buyerPrivateKey });
     after(async () => { try { await run(); } catch (e) { console.error("[agent-run]", (e as Error).message); } });

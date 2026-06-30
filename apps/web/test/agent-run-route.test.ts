@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 
 const { prepareRun, ensureProvisionedAndFunded, loadSigningKey, fundSponsored, after } = vi.hoisted(() => ({
   prepareRun: vi.fn(async () => ({ runId: "run-1", run: async () => ({ status: "succeeded", result: "ok" }) })),
-  ensureProvisionedAndFunded: vi.fn(async () => ({ eoaAddress: "0xeoa", fundedMicroUsd: 500_000 })),
+  ensureProvisionedAndFunded: vi.fn(async () => ({ eoaAddress: "0xeoa", fundedMicroUsd: 100_000, status: "funded" })),
   loadSigningKey: vi.fn(async () => "0xUSERKEY"),
   fundSponsored: vi.fn(async () => 500_000),
   after: vi.fn((_fn: any) => { /* no-op in tests */ }),
@@ -78,5 +78,12 @@ describe("POST /api/agent/run", () => {
     expect(res.status).toBe(400);
     expect(prepareRun).not.toHaveBeenCalled();
     expect(ensureProvisionedAndFunded).not.toHaveBeenCalled();
+  });
+
+  it("503s when the sponsor grant cap is reached", async () => {
+    ensureProvisionedAndFunded.mockResolvedValueOnce({ eoaAddress: "0xeoa", fundedMicroUsd: 0, status: "capped" });
+    const res = await POST(req({ goal: "g", budgetUsd: 0.02 }, "siwe-address=0xABC"));
+    expect(res.status).toBe(503);
+    expect(prepareRun).not.toHaveBeenCalled();
   });
 });
