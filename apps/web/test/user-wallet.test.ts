@@ -20,7 +20,7 @@ const fakeDb = {
         },
       }),
     }),
-    insert: async (row: any) => { rows.push(row); return { error: null }; },
+    insert: async (row: any) => { rows.push({ funding_status: "unfunded", ...row }); return { error: null }; },
     update: (patch: any) => ({
       eq: async (_col: string, val: string) => {
         if (forceUpdateError) return { error: forceUpdateError };
@@ -81,5 +81,16 @@ describe("user-wallet", () => {
     const b = await getOrCreateUserWallet("0xuser");
     expect(rows).toHaveLength(1);
     expect(a.eoaAddress).toBe(b.eoaAddress);
+  });
+
+  it("returns fundingStatus from the row (and 'unfunded' for a new wallet)", async () => {
+    const a = await getOrCreateUserWallet("0xnew");
+    expect(a.fundingStatus).toBe("unfunded");
+    // simulate an existing funded row, then re-read
+    rows[0].funding_status = "funded";
+    rows[0].funded_micro_usd = 100_000;
+    const b = await getOrCreateUserWallet("0xnew");
+    expect(b.fundingStatus).toBe("funded");
+    expect(b.fundedMicroUsd).toBe(100_000);
   });
 });

@@ -14,6 +14,7 @@ export interface UserWallet {
   userId: string;
   eoaAddress: `0x${string}`;
   fundedMicroUsd: number;
+  fundingStatus: string;
 }
 
 /** Look up the user's spending wallet, creating + encrypting one on first call. */
@@ -22,7 +23,7 @@ export async function getOrCreateUserWallet(userId: string): Promise<UserWallet>
   const db = supabaseService();
   const { data: existing, error: lookupError } = await db
     .from("user_wallets")
-    .select("user_id,eoa_address,funded_micro_usd")
+    .select("user_id,eoa_address,funded_micro_usd,funding_status")
     .eq("user_id", userId)
     .maybeSingle();
   if (lookupError) throw new Error(`wallet lookup failed: ${lookupError.message}`);
@@ -31,6 +32,7 @@ export async function getOrCreateUserWallet(userId: string): Promise<UserWallet>
       userId: existing.user_id,
       eoaAddress: existing.eoa_address as `0x${string}`,
       fundedMicroUsd: Number(existing.funded_micro_usd),
+      fundingStatus: existing.funding_status as string,
     };
   }
   const pk = generatePrivateKey();
@@ -45,7 +47,7 @@ export async function getOrCreateUserWallet(userId: string): Promise<UserWallet>
     spent_micro_usd: 0,
   });
   if (error) throw new Error(`wallet provision failed: ${error.message}`);
-  return { userId, eoaAddress: account.address, fundedMicroUsd: 0 };
+  return { userId, eoaAddress: account.address, fundedMicroUsd: 0, fundingStatus: "unfunded" };
 }
 
 /** Decrypt and return the user's spending-EOA private key. Server-only. */
