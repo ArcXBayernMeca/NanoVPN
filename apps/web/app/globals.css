@@ -489,3 +489,5 @@ a:hover { text-decoration: underline; }
 .fetchpanel__url { flex: 1; min-width: 0; }
 .fetchpanel__bal { color: var(--ink); font-weight: 600; }
 .fetchpanel__result { background: var(--green-tint); color: var(--ink); border-radius: 8px; padding: 8px 10px; overflow-wrap: anywhere; }
+.fetchpanel__fund { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fetchpanel__amt { width: 80px; }
