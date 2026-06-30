@@ -123,3 +123,19 @@ export async function ensureProvisionedAndFunded(userId: string): Promise<Provis
   }
   return { eoaAddress: wallet.eoaAddress, fundedMicroUsd: 0, status: "pending" };
 }
+
+/** Add to the user's funded balance (e.g. a MetaMask self-fund deposit). Increments, sets status/source. */
+export async function addFunding(userId: string, microUsd: number, source: string): Promise<number> {
+  userId = userId.toLowerCase();
+  const db = supabaseService();
+  const { data, error: readErr } = await db
+    .from("user_wallets").select("funded_micro_usd").eq("user_id", userId).maybeSingle();
+  if (readErr) throw new Error(`add funding read failed: ${readErr.message}`);
+  const newTotal = Number(data?.funded_micro_usd ?? 0) + microUsd;
+  const { error } = await db
+    .from("user_wallets")
+    .update({ funded_micro_usd: newTotal, funding_status: "funded", funding_source: source })
+    .eq("user_id", userId);
+  if (error) throw new Error(`add funding failed: ${error.message}`);
+  return newTotal;
+}

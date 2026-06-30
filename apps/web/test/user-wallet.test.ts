@@ -33,7 +33,7 @@ const fakeDb = {
 };
 vi.mock("@/lib/supabase-server", () => ({ supabaseService: () => fakeDb }));
 
-import { getOrCreateUserWallet, loadSigningKey } from "../lib/user-wallet";
+import { getOrCreateUserWallet, loadSigningKey, addFunding } from "../lib/user-wallet";
 
 beforeEach(() => {
   rows.length = 0;
@@ -80,5 +80,16 @@ describe("user-wallet", () => {
     const b = await getOrCreateUserWallet("0xnew");
     expect(b.fundingStatus).toBe("funded");
     expect(b.fundedMicroUsd).toBe(100_000);
+  });
+
+  it("addFunding increments funded_micro_usd and flips status/source", async () => {
+    await getOrCreateUserWallet("0xu");
+    rows[0].funded_micro_usd = 100_000;
+    rows[0].funding_status = "unfunded";
+    const total = await addFunding("0xu", 1_000_000, "metamask");
+    expect(total).toBe(1_100_000);
+    expect(rows[0].funded_micro_usd).toBe(1_100_000);
+    expect(rows[0].funding_status).toBe("funded");
+    expect(rows[0].funding_source).toBe("metamask");
   });
 });
