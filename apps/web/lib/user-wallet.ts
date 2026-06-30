@@ -75,14 +75,62 @@ export async function markFunded(userId: string, microUsd: number): Promise<void
   if (error) throw new Error(`mark funded failed: ${error.message}`);
 }
 
-/** Ensure the user has a provisioned + funded spending wallet. Funds once (when funded==0). */
-export async function ensureProvisionedAndFunded(
-  userId: string,
-): Promise<{ eoaAddress: `0x${string}`; fundedMicroUsd: number }> {
+const MAX_SPONSORED_WALLETS = () => Number(process.env.MAX_SPONSORED_WALLETS) || 100;
+
+export interface ProvisionResult {
+  eoaAddress: `0x${string}`;
+  fundedMicroUsd: number;
+  status: "funded" | "capped" | "pending";
+}
+
+/**
+ * Provision + sponsor-fund a wallet, exactly once, under a global cap.
+ * Atomic claim (unfunded -> funding) means only one caller funds; losers poll.
+ */
+export async function ensureProvisionedAndFunded(userId: string): Promise<ProvisionResult> {
+  userId = userId.toLowerCase();
+  const db = supabaseService();
   const wallet = await getOrCreateUserWallet(userId);
-  if (wallet.fundedMicroUsd > 0) return { eoaAddress: wallet.eoaAddress, fundedMicroUsd: wallet.fundedMicroUsd };
-  const key = await loadSigningKey(userId);
-  const granted = await fundSponsored(key);
-  await markFunded(userId, granted);
-  return { eoaAddress: wallet.eoaAddress, fundedMicroUsd: granted };
+  if (wallet.fundingStatus === "funded") {
+    return { eoaAddress: wallet.eoaAddress, fundedMicroUsd: wallet.fundedMicroUsd, status: "funded" };
+  }
+
+  // Atomic claim: only the row still 'unfunded' flips to 'funding', and only one caller wins it.
+  const { data: claimed } = await db
+    .from("user_wallets")
+    .update({ funding_status: "funding" })
+    .eq("user_id", userId)
+    .eq("funding_status", "unfunded")
+    .select("user_id");
+
+  if (claimed && claimed.length > 0) {
+    // Cap check (soft ceiling).
+    const { count } = await db
+      .from("user_wallets")
+      .select("user_id", { count: "exact", head: true })
+      .eq("funding_status", "funded");
+    if ((count ?? 0) >= MAX_SPONSORED_WALLETS()) {
+      await db.from("user_wallets").update({ funding_status: "unfunded" }).eq("user_id", userId);
+      return { eoaAddress: wallet.eoaAddress, fundedMicroUsd: 0, status: "capped" };
+    }
+    try {
+      const key = await loadSigningKey(userId);
+      const granted = await fundSponsored(key);
+      await db.from("user_wallets").update({ funding_status: "funded", funded_micro_usd: granted }).eq("user_id", userId);
+      return { eoaAddress: wallet.eoaAddress, fundedMicroUsd: granted, status: "funded" };
+    } catch (e) {
+      // Release the claim so a later attempt can retry; don't leave a stuck 'funding' row.
+      await db.from("user_wallets").update({ funding_status: "unfunded" }).eq("user_id", userId);
+      throw e;
+    }
+  }
+
+  // Lost the claim — another caller is funding (or just finished). Poll briefly.
+  for (let i = 0; i < 10; i++) {
+    await new Promise((r) => setTimeout(r, 1000));
+    const w = await getOrCreateUserWallet(userId);
+    if (w.fundingStatus === "funded") return { eoaAddress: w.eoaAddress, fundedMicroUsd: w.fundedMicroUsd, status: "funded" };
+    if (w.fundingStatus === "unfunded") return { eoaAddress: w.eoaAddress, fundedMicroUsd: 0, status: "capped" };
+  }
+  return { eoaAddress: wallet.eoaAddress, fundedMicroUsd: 0, status: "pending" };
 }
