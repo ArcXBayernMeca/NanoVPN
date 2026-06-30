@@ -63,7 +63,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.startsWith("/usage/")) { streamUsage(res, registry, url.pathname.split("/")[2]); return; }
     if (url.pathname === "/settle") { await handleSettle(req, res, { registry, facilitator, sellerAddress: SELLER_ADDRESS, onSettled }); return; }
     if (url.pathname === "/egress" && req.method === "POST") {
-      await handleEgress(req, res, { facilitator, sellerAddress: SELLER_ADDRESS, priceMicroUsd: EGRESS_PRICE_MICRO_USD, pricePerGbUsd: EDGE_NODE_PRICE_PER_GB_USD, egressIp: EGRESS_IP, fetchTarget });
+      await handleEgress(req, res, { facilitator, sellerAddress: SELLER_ADDRESS, priceMicroUsd: EGRESS_PRICE_MICRO_USD, pricePerGbUsd: EDGE_NODE_PRICE_PER_GB_USD, egressIp: EGRESS_IP, flyRegion: process.env.FLY_REGION, fetchTarget });
       return;
     }
     res.writeHead(404).end("not found");
