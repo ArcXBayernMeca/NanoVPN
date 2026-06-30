@@ -112,6 +112,7 @@ describe("handleEgress", () => {
     expect(res.headers["fly-replay"]).toBe("region=fra");
     expect(fetchTarget).not.toHaveBeenCalled();
     expect(facilitator.settle).not.toHaveBeenCalled();
+    expect(facilitator.verify).not.toHaveBeenCalled();
   });
 
   it("processes normally and reports its region when it IS the requested region", async () => {
