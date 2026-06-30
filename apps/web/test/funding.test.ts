@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 process.env.SPONSOR_PRIVATE_KEY =
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
-process.env.USER_GRANT_USD = "0.50";
+process.env.USER_GRANT_USD = "0.10";
 process.env.USER_GAS_NATIVE = "0.05";
 
 const sendTransaction = vi.fn(async () => "0xgas");
@@ -35,7 +35,7 @@ describe("fundSponsored", () => {
     expect(sendTransaction).toHaveBeenCalledTimes(1);        // native gas
     expect(writeContract).toHaveBeenCalledTimes(1);          // ERC-20 transfer
     expect(writeContract.mock.calls[0][0]).toMatchObject({ functionName: "transfer" });
-    expect(deposit).toHaveBeenCalledWith("0.50");            // EOA self-deposit
-    expect(granted).toBe(500_000);                           // µUSD
+    expect(deposit).toHaveBeenCalledWith("0.10");            // EOA self-deposit
+    expect(granted).toBe(100_000);                           // µUSD
   });
 });

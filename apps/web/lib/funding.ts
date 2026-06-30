@@ -6,7 +6,7 @@ import { arcTestnet } from "viem/chains";
 import { GatewayClient } from "@circle-fin/x402-batching/client";
 import { ARC, arcPublicClient } from "@nanovpn/core";
 
-const GRANT_USD = process.env.USER_GRANT_USD ?? "0.50";       // ERC-20 USDC grant (6 dec)
+const GRANT_USD = process.env.USER_GRANT_USD ?? "0.10";       // ERC-20 USDC grant (6 dec)
 const GAS_NATIVE = process.env.USER_GAS_NATIVE ?? "0.05";     // native USDC-gas (18 dec) for approve+deposit; tune via arcscan
 
 function sponsorKey(): Hex {
