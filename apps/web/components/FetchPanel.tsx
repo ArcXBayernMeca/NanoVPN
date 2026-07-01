@@ -12,7 +12,7 @@ export function FetchPanel({ node, streaming, intensity, onToggleStream, onInten
   node: NodeListing; streaming: boolean; intensity: Intensity;
   onToggleStream(): void; onIntensity(i: Intensity): void;
 }) {
-  const [balance, setBalance] = useState<{ eoaAddress: string; fundedMicroUsd: number; spentMicroUsd: number; fundingStatus: string } | null>(null);
+  const [balance, setBalance] = useState<{ eoaAddress: string; fundedMicroUsd: number; spentMicroUsd: number; fundingStatus: string; gatewayMicroUsd: number | null } | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [bytesUsed, setBytesUsed] = useState(0);
   const [streamSpent, setStreamSpent] = useState(0);
@@ -77,7 +77,6 @@ export function FetchPanel({ node, streaming, intensity, onToggleStream, onInten
     } catch (e) { setFundErr((e as Error).message); } finally { setFunding(false); }
   }
 
-  const remaining = balance ? balance.fundedMicroUsd - balance.spentMicroUsd : 0;
   const RATES: Intensity[] = ["light", "medium", "heavy"];
   return (
     <div className="streampanel">
@@ -108,7 +107,11 @@ export function FetchPanel({ node, streaming, intensity, onToggleStream, onInten
       {streamErr && <p className="streampanel__warn">⚠ {streamErr}</p>}
 
       {balance && (
-        <p className="streampanel__bal">Balance <strong>{formatUsd(remaining)}</strong> <span className="streampanel__sub">of {formatUsd(balance.fundedMicroUsd)} funded</span></p>
+        <p className="streampanel__bal">Balance{" "}
+          {balance.gatewayMicroUsd == null
+            ? <span className="streampanel__sub">syncing…</span>
+            : <><strong>{formatUsd(balance.gatewayMicroUsd)}</strong> <span className="streampanel__sub">of {formatUsd(balance.fundedMicroUsd)} funded</span></>}
+        </p>
       )}
       <div className="streampanel__fund">
         <span className="streampanel__sub">Top up your spending wallet (USDC)</span>
