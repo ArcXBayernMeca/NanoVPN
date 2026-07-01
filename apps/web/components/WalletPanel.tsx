@@ -19,7 +19,7 @@ export function WalletPanel() {
           : <span className="streampanel__sub">—</span>}
       </p>
       {eoaAddress != null && (
-        <p className="streampanel__bal">Spending balance{" "}
+        <p className="streampanel__bal">Gateway balance{" "}
           {gatewayMicroUsd == null
             ? <span className="streampanel__sub">syncing…</span>
             : <><strong>{formatUsd(gatewayMicroUsd)}</strong> <span className="streampanel__sub">of {formatUsd(fundedMicroUsd ?? 0)} funded</span></>}

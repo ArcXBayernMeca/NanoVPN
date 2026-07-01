@@ -25,7 +25,7 @@ export function AgentWalletCard() {
           <span className="awallet__sub">{address ? short(address) : "not connected"}</span>
         </div>
         <div className="awallet__stat">
-          <span className="awallet__k">Spending balance</span>
+          <span className="awallet__k">Gateway balance</span>
           <b className="awallet__v">{gatewayMicroUsd != null ? formatUsd(gatewayMicroUsd) : eoaAddress ? "syncing…" : "—"}</b>
           <span className="awallet__sub">{eoaAddress != null ? `of ${formatUsd(fundedMicroUsd ?? 0)} funded` : "spending wallet"}</span>
         </div>
