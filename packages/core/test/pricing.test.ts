@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { microUsdForBytes, shouldSettle, SETTLE_THRESHOLD_MICRO_USD, microUsdForRequest } from "../src/pricing";
+import { microUsdForBytes, shouldSettle, SETTLE_THRESHOLD_MICRO_USD, microUsdForRequest, residentialSavings, RESIDENTIAL_MARKUP } from "../src/pricing";
 
 describe("microUsdForBytes", () => {
   it("prices 1 GB at the per-GB rate in µUSD", () => {
@@ -35,5 +35,25 @@ describe("microUsdForRequest", () => {
   });
   it("rounds to an integer (no fractional atomic units)", () => {
     expect(microUsdForRequest(0.0000015)).toBe(2); // 1.5 → 2
+  });
+});
+
+describe("residentialSavings", () => {
+  it("RESIDENTIAL_MARKUP is 5", () => {
+    expect(RESIDENTIAL_MARKUP).toBe(5);
+  });
+  it("computes savings for a 1 MB fetch at $15/GB vs $0.001 paid", () => {
+    const s = residentialSavings(1_000_000, 1000, 15); // reference = round(1e6*15/1000) = 15000 µUSD
+    expect(s.referenceMicroUsd).toBe(15000);
+    expect(s.savedMicroUsd).toBe(14000);
+    expect(s.pct).toBe(93); // round(14000/15000*100)
+  });
+  it("returns zeros when there are no bytes", () => {
+    expect(residentialSavings(0, 1000, 15)).toEqual({ referenceMicroUsd: 0, savedMicroUsd: 0, pct: 0 });
+  });
+  it("reports negative savings when the reference is below what was paid (caller clamps)", () => {
+    const s = residentialSavings(500, 1000, 15); // reference = round(500*15/1000) = 8 µUSD
+    expect(s.referenceMicroUsd).toBe(8);
+    expect(s.savedMicroUsd).toBe(-992);
   });
 });
