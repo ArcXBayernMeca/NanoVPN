@@ -26,9 +26,12 @@ export function AgentStatusRail({ runId, initialNodeId, initialSpentMicroUsd, bu
       <span className="eyebrow">Budget</span>
       <div className="agent-gauge"><span className="agent-gauge__fill" style={{ width: `${pct}%` }} /></div>
       <div className="agent-rail__spend">{formatUsd(spentMicroUsd)} / {formatUsd(budgetMicroUsd)}</div>
-      <WalletBalances />
       <div className="agent-rail__status" data-status={status}>{status.replace("_", " ")}</div>
-      <SavingsBenchmark bytes={bytes} spentMicroUsd={spentMicroUsd} refUsdPerGb={refUsdPerGb} />
+      <div className="agent-rail__money">
+        <span className="eyebrow">Balances</span>
+        <WalletBalances />
+        <SavingsBenchmark bytes={bytes} spentMicroUsd={spentMicroUsd} refUsdPerGb={refUsdPerGb} />
+      </div>
     </aside>
   );
 }
