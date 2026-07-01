@@ -33,6 +33,14 @@ SDK note: `GatewayClient.deposit()` returns a `DepositResult { approvalTxHash?, 
 amount, ... }` (it does not guarantee the deposit is mined before returning), and Gateway
 deposits have a **finalization delay** before the deposited USDC shows as *available*.
 
+Audit note (vs Circle's `circle:use-gateway` skill): the balance query, the domain (26)/Gateway
+Wallet (`0x0077…19B9`) config, and "confirmed = deposit tx receipt succeeded" all match Circle's
+official references exactly. The one gap: Circle's `deposit-evm` reference deposits via an
+explicit **approve + `deposit(token, value)`** with hard gas caps (**approve `120_000`, deposit
+`350_000`**) "to avoid overestimating and hitting max tx gas limit." The stranded funds (raw
+balance never cleared) are consistent with the SDK's `gateway.deposit()` failing on gas — so this
+design deposits with those explicit caps rather than the SDK method.
+
 ## Decisions (locked during brainstorming)
 
 - **The displayed balance's source of truth becomes the live Circle Gateway available
@@ -45,33 +53,45 @@ deposits have a **finalization delay** before the deposited USDC shows as *avail
   absorbs on screen). If the deposit is not confirmed, **error and credit nothing**.
 - **Recover the currently-stranded funds**: Approach A does this naturally — the stranded USDC
   is already in the EOA raw balance, so the next self-fund deposits the whole raw balance and
-  (now that we wait for the receipt) credits it correctly once.
+  (now that we deposit reliably + wait for the receipt) credits it correctly once.
+- **Deposit reliably (audit finding)**: deposit via an explicit on-chain approve + `deposit`
+  with the gas caps from Circle's `deposit-evm` reference (approve `120_000`, deposit `350_000`),
+  replacing the SDK's `gateway.deposit()` whose missing caps are the probable cause of the failed
+  deposits.
 
 ## Architecture
 
 ### A. `apps/web/lib/gateway-balance.ts` (new, shared)
 
-`gatewayAvailableMicroUsd(address: string): Promise<number | null>` — POST Circle
+`gatewayAvailableMicroUsd(address: string): Promise<number | null>` — guard the `address`
+(must match `/^0x[0-9a-fA-F]{40}$/`; return `null` for a malformed address), then POST Circle
 `${ARC.facilitator}/v1/balances` with `{ token: "USDC", sources: [{ domain: ARC.domain,
 depositor: address }] }`, read `balances[0].balance` (a decimal USDC string), convert to
 integer µUSD (`Math.round(Number(balance) * 1e6)`), and return it. Return **`null`** on a
 non-OK response or fetch error (never throw, never fabricate). This is the single place that
 reads a Gateway available balance; `apps/web/app/api/balance/route.ts` is refactored to use it
-(DRY), and `/api/wallet` + self-fund consume it.
+(DRY), and `/api/wallet` + self-fund consume it. (`balance` is the *available* balance and
+excludes still-finalizing deposits, which the response reports separately as `pendingBatch`.)
 
-### B. `apps/web/lib/self-fund.ts` — verify before crediting
+### B. `apps/web/lib/self-fund.ts` — deposit reliably, then verify before crediting
 
 `depositOwnBalance(eoaPrivateKey)`:
 1. Read the EOA's raw USDC balance; if `0n` → return `0` (nothing to deposit).
 2. Sponsor gas if `native < MIN_NATIVE` (unchanged).
-3. `const r = await gateway.deposit(formatUnits(balance, ARC.usdcDecimals))`.
-4. **`const receipt = await arcPublicClient().waitForTransactionReceipt({ hash: r.depositTxHash })`;
-   if `receipt.status !== "success"` → `throw new Error("deposit transaction failed")`.**
-5. Return `Number(r.amount)` — the confirmed-on-chain µUSD deposited.
+3. **Deposit via explicit on-chain approve + deposit** (Circle `deposit-evm` pattern + gas caps;
+   replaces the SDK's `gateway.deposit()`). Build a viem wallet client for the EOA account
+   (`createWalletClient({ account: privateKeyToAccount(eoaPrivateKey), chain: arcTestnet, transport: http(ARC.rpcUrl) })`)
+   and a `pub = arcPublicClient()`:
+   - **Approve:** `writeContract({ address: ARC.usdc, abi: erc20Abi, functionName: "approve", args: [ARC.gatewayWallet, balance], gas: 120_000n })` → `pub.waitForTransactionReceipt` → require `status === "success"`.
+   - **Deposit:** `writeContract({ address: ARC.gatewayWallet, abi: GATEWAY_WALLET_DEPOSIT_ABI, functionName: "deposit", args: [ARC.usdc, balance], gas: 350_000n })` → `pub.waitForTransactionReceipt`.
+   where `GATEWAY_WALLET_DEPOSIT_ABI` is the single-function ABI `deposit(address token, uint256 value)` from the reference.
+4. **If either receipt's `status !== "success"` → `throw new Error("deposit transaction failed")`.**
+5. Return `Number(balance)` — the confirmed-on-chain µUSD deposited (USDC atomic units = µUSD).
 
-A confirmed deposit clears the EOA raw balance, so a subsequent self-fund cannot re-credit the
-same USDC (fixes the double-count). A reverted/never-mined deposit throws (fixes the
-silent-credit).
+The explicit gas caps make the deposit actually land (fixing the probable root cause + recovering
+the stranded funds). A confirmed deposit clears the EOA raw balance, so a subsequent self-fund
+cannot re-credit the same USDC (fixes the double-count). A reverted/never-mined deposit throws
+(fixes the silent-credit).
 
 ### C. `apps/web/app/api/self-fund/route.ts` — error, credit nothing on failure
 
@@ -103,8 +123,8 @@ used for the secondary "of $X funded" line).
 ```
 MetaMask → spending EOA (raw USDC)
   POST /api/self-fund → depositOwnBalance:
-    gateway.deposit()  → { depositTxHash, amount }
-    waitForTransactionReceipt(depositTxHash).status === "success" ?
+    approve(usdc → gatewayWallet, balance, gas 120k)  → receipt.status success?
+    deposit(usdc, balance) on gatewayWallet (gas 350k) → receipt.status success ?
         │ no  → throw → route 400, NO credit (USDC stays in EOA)
         │ yes → return Number(amount) → addFunding(confirmed µUSD)
   /api/wallet → Balance = gatewayAvailableMicroUsd(EOA)  (updates as Circle finalizes)
@@ -127,9 +147,11 @@ deposits it and credits it once (receipt-verified).
 
 - **`gateway-balance`**: parses a decimal balance string → integer µUSD; returns `null` on a
   non-OK response.
-- **`self-fund` lib**: throws when the deposit receipt status is not `success`; returns
-  `r.amount` on success (mock `gateway.deposit` → `{ depositTxHash, amount }` and
-  `arcPublicClient().waitForTransactionReceipt`).
+- **`gateway-balance`**: returns `null` for a malformed address (no fetch attempted).
+- **`self-fund` lib**: throws when the approve or deposit receipt status is not `success`;
+  returns the deposited amount on success (mock the EOA wallet client's `writeContract` for
+  approve+deposit and `arcPublicClient().waitForTransactionReceipt`); asserts the deposit
+  `writeContract` targets `ARC.gatewayWallet` with `gas: 350_000n`.
 - **`self-fund` route**: 400 and **no** `addFunding` when `depositOwnBalance` returns 0 or
   throws; credits the confirmed amount and returns `gatewayMicroUsd` on success.
 - **`wallet` route**: returns `gatewayMicroUsd` from the live balance (mock
@@ -143,13 +165,14 @@ deposits it and credits it once (receipt-verified).
 
 The `$0.0007`-per-tick pricing (correct by design — fixed 256 KB chunk × $2.50/GB). The sponsor
 grant flow (`ensureProvisionedAndFunded` already sets `funded_micro_usd` to the real granted
-amount). The x402 / settlement path. No DB migration (schema unchanged; `funded_micro_usd`
+amount). The x402 / settlement path. Surfacing `pendingBatch` (still-finalizing deposits) as a
+"finalizing…" UI hint (nice-to-have). No DB migration (schema unchanged; `funded_micro_usd`
 keeps its meaning, now honest).
 
 ## Files touched
 
 - `apps/web/lib/gateway-balance.ts` — new `gatewayAvailableMicroUsd`
-- `apps/web/lib/self-fund.ts` — wait for deposit receipt + return confirmed amount
+- `apps/web/lib/self-fund.ts` — explicit approve+deposit (gas caps) + wait receipts + return confirmed amount
 - `apps/web/app/api/self-fund/route.ts` — error/no-credit on unconfirmed; return `gatewayMicroUsd`
 - `apps/web/app/api/wallet/route.ts` — return `gatewayMicroUsd`
 - `apps/web/app/api/balance/route.ts` — refactor to use `gatewayAvailableMicroUsd` (DRY)
