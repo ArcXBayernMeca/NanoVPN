@@ -23,4 +23,11 @@ describe("gatewayAvailableMicroUsd", () => {
     vi.spyOn(global, "fetch").mockResolvedValue(new Response("err", { status: 502 }));
     expect(await gatewayAvailableMicroUsd(ADDR)).toBeNull();
   });
+
+  it("returns null when the balance string is not a finite number", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ balances: [{ balance: "abc" }] }), { status: 200 }),
+    );
+    expect(await gatewayAvailableMicroUsd(ADDR)).toBeNull();
+  });
 });

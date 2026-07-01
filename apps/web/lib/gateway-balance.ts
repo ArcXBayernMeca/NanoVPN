@@ -19,7 +19,8 @@ export async function gatewayAvailableMicroUsd(address: string): Promise<number 
     const data = await r.json();
     const balance = data?.balances?.[0]?.balance;
     if (balance == null) return null;
-    return Math.round(Number(balance) * 1e6);
+    const micro = Math.round(Number(balance) * 1e6);
+    return Number.isFinite(micro) ? micro : null;
   } catch {
     return null;
   }
