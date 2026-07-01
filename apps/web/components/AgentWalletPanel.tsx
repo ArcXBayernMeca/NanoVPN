@@ -1,9 +1,9 @@
 "use client";
 import { useWallet } from "./WalletProvider";
-import { WalletPanel } from "./WalletPanel";
+import { AgentWalletCard } from "./AgentWalletCard";
 
-/** The full wallet panel (balances + Fund) at the top of the agent page — only when signed in. */
+/** The light wallet card (balances + Fund) at the top of the agent page — only when signed in. */
 export function AgentWalletPanel() {
   const { signedIn } = useWallet();
-  return signedIn ? <WalletPanel /> : null;
+  return signedIn ? <AgentWalletCard /> : null;
 }
