@@ -1,9 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useWriteContract, usePublicClient, useAccount } from "wagmi";
-import { parseUnits, erc20Abi } from "viem";
 import type { NodeListing } from "@nanovpn/core";
-import { ARC, FLY_REGION_CITY } from "@nanovpn/core";
+import { FLY_REGION_CITY } from "@nanovpn/core";
 import { formatUsd } from "./format";
 import { SettlementLog } from "./SettlementLog";
 import { intervalForIntensity, type Intensity } from "@/lib/traffic";
@@ -12,25 +10,11 @@ export function FetchPanel({ node, streaming, intensity, onToggleStream, onInten
   node: NodeListing; streaming: boolean; intensity: Intensity;
   onToggleStream(): void; onIntensity(i: Intensity): void;
 }) {
-  const [balance, setBalance] = useState<{ eoaAddress: string; fundedMicroUsd: number; spentMicroUsd: number; fundingStatus: string; gatewayMicroUsd: number | null } | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [bytesUsed, setBytesUsed] = useState(0);
   const [streamSpent, setStreamSpent] = useState(0);
   const [egress, setEgress] = useState<{ ip: string; geo: { city: string; country: string }; verified: boolean; region: string | null } | null>(null);
   const [streamErr, setStreamErr] = useState<string | null>(null);
-
-  const { isConnected } = useAccount();
-  const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient();
-  const [amount, setAmount] = useState("1");
-  const [funding, setFunding] = useState(false);
-  const [fundErr, setFundErr] = useState<string | null>(null);
-
-  async function refreshWallet() {
-    const d = await fetch("/api/wallet").then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    if (d) setBalance(d);
-  }
-  useEffect(() => { refreshWallet(); }, []);
 
   // Streaming loop: while `streaming`, drive a metered chunk per tick (mirrors lib/traffic.ts).
   useEffect(() => {
@@ -52,30 +36,12 @@ export function FetchPanel({ node, streaming, intensity, onToggleStream, onInten
         setBytesUsed((b) => b + d.bytes);
         setStreamSpent((s) => s + d.amountMicroUsd);
         setEgress({ ip: d.egressIp, geo: d.geo, verified: !!d.regionVerified, region: d.region ?? null });
-        setBalance((b) => (b ? { ...b, spentMicroUsd: b.spentMicroUsd + d.amountMicroUsd } : b));
       } catch { /* aborted / soft-fail */ } finally { inFlight = false; }
     };
     void tick();
     const id = setInterval(() => void tick(), intervalForIntensity(intensity));
     return () => { ctrl.abort(); clearInterval(id); };
   }, [streaming, intensity, sessionId, node.id]);
-
-  async function selfFund() {
-    if (!(Number(amount) > 0)) { setFundErr("Enter an amount greater than 0"); return; }
-    if (!balance || !publicClient) return;
-    setFunding(true); setFundErr(null);
-    try {
-      const hash = await writeContractAsync({
-        address: ARC.usdc, abi: erc20Abi, functionName: "transfer",
-        args: [balance.eoaAddress as `0x${string}`, parseUnits(amount, ARC.usdcDecimals)],
-      });
-      await publicClient.waitForTransactionReceipt({ hash });
-      const r = await fetch("/api/self-fund", { method: "POST" });
-      const d = await r.json();
-      if (!r.ok) { setFundErr(d.error ?? "self-fund failed"); return; }
-      await refreshWallet();
-    } catch (e) { setFundErr((e as Error).message); } finally { setFunding(false); }
-  }
 
   const RATES: Intensity[] = ["light", "medium", "heavy"];
   return (
@@ -105,27 +71,6 @@ export function FetchPanel({ node, streaming, intensity, onToggleStream, onInten
         ))}
       </div>
       {streamErr && <p className="streampanel__warn">⚠ {streamErr}</p>}
-
-      {balance && (
-        <p className="streampanel__bal">Balance{" "}
-          {balance.gatewayMicroUsd == null
-            ? <span className="streampanel__sub">syncing…</span>
-            : <><strong>{formatUsd(balance.gatewayMicroUsd)}</strong> <span className="streampanel__sub">of {formatUsd(balance.fundedMicroUsd)} funded</span></>}
-        </p>
-      )}
-      <div className="streampanel__fund">
-        <span className="streampanel__sub">Top up your spending wallet (USDC)</span>
-        <div className="streampanel__fundrow">
-          <div className="streampanel__amtwrap">
-            <span className="streampanel__amtcur">$</span>
-            <input className="streampanel__amt" type="number" min="0.1" step="0.1" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="Top up amount" />
-          </div>
-          <button className="btn btn--secondary streampanel__fundbtn" disabled={funding || !isConnected || !balance} onClick={selfFund}>
-            {funding ? "Funding…" : "Fund"}
-          </button>
-        </div>
-        {fundErr && <p className="streampanel__warn">{fundErr}</p>}
-      </div>
 
       {sessionId && <SettlementLog sessionId={sessionId} />}
     </div>

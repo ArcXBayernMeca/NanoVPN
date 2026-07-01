@@ -502,6 +502,7 @@ a:hover { text-decoration: underline; }
 .streampanel__rates .btn { flex: 1; text-transform: capitalize; padding: 6px 0; }
 .streampanel__rates .is-active { border-color: var(--green); color: var(--green); }
 .streampanel__warn { font-size: 12px; color: var(--amber); }
+.walletpanel { display: flex; flex-direction: column; gap: 10px; }
 .streampanel__bal { font-size: 14px; color: #e8f0ec; }
 .streampanel__bal strong { color: var(--green); }
 .streampanel__sub { font-size: 12px; color: #9fb4ab; }
