@@ -77,11 +77,16 @@ AgentFeed already uses for events.)
 
 **G. `apps/web/components/SavingsBenchmark.tsx` (new)** — props
 `{ bytes: number; spentMicroUsd: number; refUsdPerGb: number | null }`. Computes
-`residentialSavings(bytes, spentMicroUsd, refUsdPerGb ?? 0)` and renders:
+`residentialSavings(bytes, spentMicroUsd, refUsdPerGb ?? 0)` and renders. **Honesty (audit —
+circle:use-usdc):** the reference is derived from our own node price × markup, so the UI must
+mark it unmistakably as an **estimate**, transparent about the assumption — never presented as a
+quoted vendor price:
 - `bytes === 0` or `refUsdPerGb == null` → muted "no savings yet".
 - `savedMicroUsd > 0` → **"Saved `formatUsd(savedMicroUsd)` (`pct`%)"** + a detail line
-  "you paid `formatUsd(spentMicroUsd)` · residential ≈ `formatUsd(referenceMicroUsd)` @
-  `$refUsdPerGb`/GB (illustrative)".
+  "you paid `formatUsd(spentMicroUsd)` · vs residential proxy ≈ `formatUsd(referenceMicroUsd)`"
+  + a muted footnote **"est. — assumes a residential proxy ~`RESIDENTIAL_MARKUP`× a metered
+  `$refUsdPerGb ÷ RESIDENTIAL_MARKUP`/GB geo rate"** (i.e. the label states the assumption, not a
+  bare "@ $X/GB").
 - `savedMicroUsd <= 0` → the detail line only (no "saved" headline) — honest, never a negative
   savings claim.
 
@@ -126,7 +131,9 @@ useAgentRunStatus (nodeId, spentMicroUsd) + useAgentBytes (bytes)
   `syncing…` on nulls.
 - **`WalletPanel`**: unchanged behaviour after the hook refactor — existing 5 tests stay green.
 - **`SavingsBenchmark`**: "Saved $X (N%)" when `saved > 0`; detail-only (no "Saved") when
-  `reference ≤ paid`; "no savings yet" when `bytes = 0` / `refUsdPerGb == null`.
+  `reference ≤ paid`; "no savings yet" when `bytes = 0` / `refUsdPerGb == null`; the estimate
+  footnote (an "est."/"estimate" marker) is present whenever a reference is shown (audit — the
+  savings must never read as a quoted vendor price).
 - **`AgentStatusRail`**: renders `WalletBalances` + `SavingsBenchmark` (mock `useAgentBytes`,
   `useWalletBalances`, `useAgentRunStatus`); `refUsdPerGb` derived from the chosen node.
 - **`useAgentBytes`**: (light) sums initial payment bytes + a realtime insert (mock
