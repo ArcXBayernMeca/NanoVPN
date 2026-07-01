@@ -1,15 +1,21 @@
 "use client";
 import { WorldMap } from "./WorldMap";
+import { WalletBalances } from "./WalletBalances";
+import { SavingsBenchmark } from "./SavingsBenchmark";
 import { formatUsd } from "./format";
 import { useAgentRunStatus } from "@/lib/use-agent-run-status";
+import { useAgentBytes } from "@/lib/use-agent-bytes";
+import { RESIDENTIAL_MARKUP } from "@nanovpn/core";
 import type { NodeListing } from "@nanovpn/core";
 
 export function AgentStatusRail({ runId, initialNodeId, initialSpentMicroUsd, budgetMicroUsd, initialStatus, nodes }: {
   runId: string; initialNodeId: string | null; initialSpentMicroUsd: number; budgetMicroUsd: number; initialStatus: string; nodes: NodeListing[];
 }) {
   const { nodeId, spentMicroUsd, status } = useAgentRunStatus(runId, { nodeId: initialNodeId, spentMicroUsd: initialSpentMicroUsd, status: initialStatus });
+  const bytes = useAgentBytes(runId);
   const pct = budgetMicroUsd > 0 ? Math.min(100, Math.round((spentMicroUsd / budgetMicroUsd) * 100)) : 0;
   const chosen = nodes.find((n) => n.id === nodeId) ?? null;
+  const refUsdPerGb = chosen ? chosen.pricePerGbUsd * RESIDENTIAL_MARKUP : null;
   return (
     <aside className="agent-rail">
       <span className="eyebrow">Chosen node</span>
@@ -20,7 +26,9 @@ export function AgentStatusRail({ runId, initialNodeId, initialSpentMicroUsd, bu
       <span className="eyebrow">Budget</span>
       <div className="agent-gauge"><span className="agent-gauge__fill" style={{ width: `${pct}%` }} /></div>
       <div className="agent-rail__spend">{formatUsd(spentMicroUsd)} / {formatUsd(budgetMicroUsd)}</div>
+      <WalletBalances />
       <div className="agent-rail__status" data-status={status}>{status.replace("_", " ")}</div>
+      <SavingsBenchmark bytes={bytes} spentMicroUsd={spentMicroUsd} refUsdPerGb={refUsdPerGb} />
     </aside>
   );
 }
