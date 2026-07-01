@@ -3,6 +3,7 @@ import { runIdToLoad } from "@/lib/agent-run-query";
 import { AgentFeed } from "@/components/AgentFeed";
 import { AgentRunForm } from "@/components/AgentRunForm";
 import { AgentStatusRail } from "@/components/AgentStatusRail";
+import { AgentWalletPanel } from "@/components/AgentWalletPanel";
 import type { NodeListing } from "@nanovpn/core";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,7 @@ export default async function AgentPage({ searchParams }: { searchParams: Promis
       <main className="agent-page">
         <h1>Watch the AI work</h1>
         <AgentRunForm />
+        <AgentWalletPanel />
         <p className="muted">Launch an agent above to watch it reason and pay per request.</p>
       </main>
     );
@@ -31,6 +33,7 @@ export default async function AgentPage({ searchParams }: { searchParams: Promis
     <main className="agent-page">
       <h1>Watch the AI work</h1>
       <AgentRunForm />
+      <AgentWalletPanel />
       <header className="agent-run"><p className="agent-run__goal">{row.goal}</p></header>
       <div className="agent-layout">
         {/* key by run so all per-run client state resets when navigating between runs */}
