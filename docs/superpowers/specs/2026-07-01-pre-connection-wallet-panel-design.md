@@ -32,9 +32,12 @@ should show as soon as the wallet is signed in.
 Owns everything wallet/funding-related (moved out of `FetchPanel`):
 
 - **Wallet balance:** `useAccount()` for the connected address; `useReadContract({ address:
-  ARC.usdc, abi: erc20Abi, functionName: "balanceOf", args: [address] })` → the MetaMask
-  wallet's Arc USDC, shown via `formatUnits(balance, 6)` with the short address. If
-  unreadable → "—".
+  ARC.usdc, abi: erc20Abi, functionName: "balanceOf", args: [address], chainId: ARC.chainId,
+  query: { enabled: !!address } })` → the MetaMask wallet's Arc USDC (the **6-dec ERC-20**
+  balance — the skill's rule: 6-dec for all USDC logic, 18-dec native is gas-only), shown via
+  `formatUnits(balance, 6)` with the short address. If unreadable / wrong network / no address
+  → **"—"** (never a misleading `0`). Pinning `chainId: ARC.chainId` makes the read target Arc
+  even if the wallet is on another network.
 - **Spending balance:** fetch `/api/wallet` → `{ eoaAddress, fundedMicroUsd, spentMicroUsd,
   gatewayMicroUsd, fundingStatus }`. Show `formatUsd(gatewayMicroUsd)` as the spending
   balance (or **"syncing…"** when `gatewayMicroUsd == null`), with "of
@@ -44,7 +47,13 @@ Owns everything wallet/funding-related (moved out of `FetchPanel`):
   Fund button; on click, `useWriteContract` `transfer(ARC.usdc, [eoaAddress,
   parseUnits(amount, 6)])` from MetaMask → `waitForTransactionReceipt` (`usePublicClient`)
   → `POST /api/self-fund` → refetch `/api/wallet`. Keeps the `> 0` amount guard and the
-  error line.
+  error line. **Plus a sufficient-balance guard (audit finding, circle:use-usdc best
+  practice):** block the transfer when `parseUnits(amount, 6)` exceeds the shown wallet
+  balance, with an inline "Not enough USDC in your wallet" message — rather than letting
+  MetaMask reject it. Because on Arc the MetaMask wallet also pays gas *in USDC*, funding the
+  entire balance would strand the transfer's own gas; when the wallet balance is known, cap
+  the guard at the full balance and rely on MetaMask's gas check + the error line for the
+  last-sliver case (documented, not silently swallowed).
 
 ### B. `apps/web/components/MapRail.tsx`
 
@@ -78,8 +87,9 @@ pick node → Connect → FetchPanel (streaming) renders alongside the still-vis
 |---|---|
 | Not signed in | WalletPanel not rendered (rail shows the existing sign-in hint) |
 | `/api/wallet` transient error | Spending balance shows "syncing…", never a fabricated number (reused behaviour) |
-| MetaMask balance unreadable / no address | Wallet balance shows "—" |
+| MetaMask balance unreadable / no address / wrong network | Wallet balance shows "—" |
 | Fund: amount ≤ 0 | inline "Enter an amount greater than 0" (guard preserved) |
+| Fund: amount > wallet balance | inline "Not enough USDC in your wallet"; **no transfer** (audit finding) |
 | Fund: deposit not confirmed | `/api/self-fund` 400 surfaces its message (unchanged) |
 
 ## Testing (vitest)
@@ -87,8 +97,10 @@ pick node → Connect → FetchPanel (streaming) renders alongside the still-vis
 - **`WalletPanel`**: renders the Wallet balance (mock wagmi `useReadContract`) and the
   Spending balance (mock `/api/wallet`); shows "syncing…" when `gatewayMicroUsd` is `null`;
   Fund click transfers via `useWriteContract` then `POST /api/self-fund` then refetches;
-  the zero-amount guard blocks the transfer and shows the error. (These self-fund /
-  zero-amount / balance assertions move here from `fetch-panel.test.tsx`.)
+  the zero-amount guard blocks the transfer and shows the error; **an amount exceeding the
+  wallet balance blocks the transfer** (asserts `writeContract` not called + the "Not enough
+  USDC" message). (These self-fund / zero-amount / balance assertions move here from
+  `fetch-panel.test.tsx`.)
 - **`MapRail`**: renders `WalletPanel` when `signedIn` and NOT connected; still renders it
   when connected.
 - **`FetchPanel`**: the streaming / egress / verified-badge tests stay green; the panel no
