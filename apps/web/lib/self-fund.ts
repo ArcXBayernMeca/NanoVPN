@@ -51,19 +51,28 @@ export async function depositOwnBalance(eoaPrivateKey: Hex): Promise<number> {
     await pub.waitForTransactionReceipt({ hash: gasTx });
   }
 
+  // On Arc, USDC IS the native gas token — the approve + deposit txs spend USDC for gas out of
+  // the SAME balance we're depositing. Depositing the whole balance therefore reverts (transferFrom
+  // is left short by the gas already spent). Reserve the max the two txs can cost (gas caps × live
+  // price, ×2 for price drift) and deposit the rest. Convert 18-dec native wei → 6-dec µUSD (÷1e12).
+  const gasPrice = await pub.getGasPrice();
+  const gasReserve = ((APPROVE_GAS + DEPOSIT_GAS) * gasPrice * 2n) / 1_000_000_000_000n;
+  if (balance <= gasReserve) return 0; // too small to cover its own gas
+  const amount = balance - gasReserve;
+
   const wallet = createWalletClient({ account: eoa, chain: arcTestnet, transport: http(ARC.rpcUrl) });
 
   const approveTx = await wallet.writeContract({
-    address: ARC.usdc, abi: erc20Abi, functionName: "approve", args: [ARC.gatewayWallet, balance], gas: APPROVE_GAS,
+    address: ARC.usdc, abi: erc20Abi, functionName: "approve", args: [ARC.gatewayWallet, amount], gas: APPROVE_GAS,
   });
   const approveReceipt = await pub.waitForTransactionReceipt({ hash: approveTx });
   if (approveReceipt.status !== "success") throw new Error("deposit transaction failed (approve)");
 
   const depositTx = await wallet.writeContract({
-    address: ARC.gatewayWallet, abi: GATEWAY_WALLET_DEPOSIT_ABI, functionName: "deposit", args: [ARC.usdc, balance], gas: DEPOSIT_GAS,
+    address: ARC.gatewayWallet, abi: GATEWAY_WALLET_DEPOSIT_ABI, functionName: "deposit", args: [ARC.usdc, amount], gas: DEPOSIT_GAS,
   });
   const depositReceipt = await pub.waitForTransactionReceipt({ hash: depositTx });
   if (depositReceipt.status !== "success") throw new Error("deposit transaction failed");
 
-  return Number(balance); // USDC atomic units (6 dec) == µUSD
+  return Number(amount); // USDC atomic units (6 dec) == µUSD
 }
