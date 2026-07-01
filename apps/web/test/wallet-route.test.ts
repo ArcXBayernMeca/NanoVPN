@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-const { ensureProvisionedAndFunded } = vi.hoisted(() => ({
+const { ensureProvisionedAndFunded, gatewayAvailableMicroUsd } = vi.hoisted(() => ({
   ensureProvisionedAndFunded: vi.fn(async () => ({ eoaAddress: "0xeoa", fundedMicroUsd: 500_000, status: "funded" })),
+  gatewayAvailableMicroUsd: vi.fn(async () => 750_000),
 }));
 vi.mock("@/lib/user-wallet", () => ({ ensureProvisionedAndFunded }));
+vi.mock("@/lib/gateway-balance", () => ({ gatewayAvailableMicroUsd }));
 const rows = [{ amount_micro_usd: 1000 }, { amount_micro_usd: 2000 }];
 vi.mock("@/lib/supabase-server", () => ({
   supabaseService: () => ({ from: () => ({ select: () => ({ eq: async () => ({ data: rows, error: null }) }) }) }),
@@ -20,10 +22,13 @@ describe("GET /api/wallet", () => {
   it("401s when not signed in", async () => {
     expect((await GET(req())).status).toBe(401);
   });
-  it("returns the funded wallet + summed spend", async () => {
+  it("returns the funded wallet + summed spend + live gateway balance", async () => {
     const res = await GET(req("siwe-address=0xABC"));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ eoaAddress: "0xeoa", fundedMicroUsd: 500_000, spentMicroUsd: 3000, fundingStatus: "funded" });
+    expect(await res.json()).toEqual({
+      eoaAddress: "0xeoa", fundedMicroUsd: 500_000, spentMicroUsd: 3000, gatewayMicroUsd: 750_000, fundingStatus: "funded",
+    });
     expect(ensureProvisionedAndFunded).toHaveBeenCalledWith("0xabc");
+    expect(gatewayAvailableMicroUsd).toHaveBeenCalledWith("0xeoa");
   });
 });

@@ -18,7 +18,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   global.fetch = vi.fn(async (input: any) => {
     const u = String(input);
-    if (u.endsWith("/api/wallet")) return new Response(JSON.stringify({ eoaAddress: "0xeoa", fundedMicroUsd: 1_000_000, spentMicroUsd: 0, fundingStatus: "funded" }), { status: 200 });
+    if (u.endsWith("/api/wallet")) return new Response(JSON.stringify({ eoaAddress: "0xeoa", fundedMicroUsd: 1_000_000, spentMicroUsd: 0, fundingStatus: "funded", gatewayMicroUsd: 500_000 }), { status: 200 });
     if (u.endsWith("/api/egress")) return new Response(JSON.stringify({ sessionId: "sess-1", status: 200, bytes: 262144, egressIp: "1.2.3.4", geo: { city: "London", country: "United Kingdom" }, region: "nrt", regionVerified: true, transaction: "uuid-1", amountMicroUsd: 655 }), { status: 200 });
     if (u.endsWith("/api/self-fund")) return new Response(JSON.stringify({ depositedMicroUsd: 1_000_000, fundedMicroUsd: 2_000_000 }), { status: 200 });
     return new Response("{}", { status: 200 });
@@ -76,5 +76,20 @@ describe("FetchPanel streaming", () => {
     render(<FetchPanel node={node} streaming={true} intensity={"medium"} onToggleStream={noop} onIntensity={noop} />);
     await waitFor(() => expect(screen.getByText(/London/)).toBeTruthy());
     expect(screen.queryByText(/verified/i)).toBeNull();
+  });
+
+  it("shows the live Gateway available balance as Balance", async () => {
+    render(<FetchPanel node={node} streaming={false} intensity={"medium"} onToggleStream={noop} onIntensity={noop} />);
+    await waitFor(() => expect(screen.getByText(/\$0\.50/)).toBeTruthy()); // gatewayMicroUsd 500_000 = $0.50
+  });
+
+  it("shows 'syncing…' when the gateway balance is unavailable", async () => {
+    global.fetch = vi.fn(async (input: any) => {
+      const u = String(input);
+      if (u.endsWith("/api/wallet")) return new Response(JSON.stringify({ eoaAddress: "0xeoa", fundedMicroUsd: 1_000_000, spentMicroUsd: 0, fundingStatus: "funded", gatewayMicroUsd: null }), { status: 200 });
+      return new Response("{}", { status: 200 });
+    }) as any;
+    render(<FetchPanel node={node} streaming={false} intensity={"medium"} onToggleStream={noop} onIntensity={noop} />);
+    await waitFor(() => expect(screen.getByText(/syncing/i)).toBeTruthy());
   });
 });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ensureProvisionedAndFunded } from "@/lib/user-wallet";
+import { gatewayAvailableMicroUsd } from "@/lib/gateway-balance";
 import { supabaseService } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
@@ -14,8 +15,9 @@ export async function GET(req: NextRequest) {
       .from("settlements").select("amount_micro_usd").eq("payer", wallet.eoaAddress);
     if (error) throw new Error(`spend query failed: ${error.message}`);
     const spentMicroUsd = (data ?? []).reduce((s: number, r: any) => s + Number(r.amount_micro_usd), 0);
+    const gatewayMicroUsd = await gatewayAvailableMicroUsd(wallet.eoaAddress);
     return NextResponse.json({
-      eoaAddress: wallet.eoaAddress, fundedMicroUsd: wallet.fundedMicroUsd, spentMicroUsd, fundingStatus: wallet.status,
+      eoaAddress: wallet.eoaAddress, fundedMicroUsd: wallet.fundedMicroUsd, spentMicroUsd, gatewayMicroUsd, fundingStatus: wallet.status,
     });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
