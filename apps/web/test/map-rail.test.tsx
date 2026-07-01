@@ -7,6 +7,8 @@ vi.mock("@/components/FetchPanel", () => ({
   FetchPanel: ({ node }: any) => <button>Fetch through {node.geo.city}</button>,
 }));
 
+vi.mock("@/components/WalletPanel", () => ({ WalletPanel: () => <div>wallet-panel</div> }));
+
 const base = {
   node: null, signedIn: "0xabc", session: null, connecting: false,
   streaming: false, intensity: "medium" as const, copilotMsg: null,
@@ -56,5 +58,16 @@ describe("MapRail connected state", () => {
         onConnect={() => {}} onDisconnect={() => {}} onToggleStream={() => {}} onIntensity={() => {}} onCopilot={() => {}} />,
     );
     expect(screen.getByRole("button", { name: /Fetch through Tokyo/i })).toBeTruthy();
+  });
+});
+
+describe("MapRail wallet panel", () => {
+  it("renders the WalletPanel when signed in (before connecting)", () => {
+    render(<MapRail {...base} />); // base.signedIn = "0xabc", session = null
+    expect(screen.getByText("wallet-panel")).toBeTruthy();
+  });
+  it("does not render the WalletPanel when not signed in", () => {
+    render(<MapRail {...base} signedIn={null} />);
+    expect(screen.queryByText("wallet-panel")).toBeNull();
   });
 });

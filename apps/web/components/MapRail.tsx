@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { NodeListing } from "@nanovpn/core";
 import { FetchPanel } from "./FetchPanel";
+import { WalletPanel } from "./WalletPanel";
 import type { Intensity } from "@/lib/traffic";
 
 export function MapRail(props: {
@@ -46,6 +47,11 @@ export function MapRail(props: {
           </div>
         )}
       </section>
+      {signedIn && (
+        <section className="maprail__sec">
+          <WalletPanel />
+        </section>
+      )}
       {session && node && (
         <section className="maprail__sec">
           <FetchPanel node={node} streaming={props.streaming} intensity={props.intensity}

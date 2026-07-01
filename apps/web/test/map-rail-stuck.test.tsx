@@ -7,6 +7,11 @@ vi.mock("@/components/FetchPanel", () => ({
   FetchPanel: ({ node }: any) => <div data-testid="fetch-panel">FetchPanel for {node.geo.city}</div>,
 }));
 
+// WalletPanel uses wagmi hooks — stub it.
+vi.mock("@/components/WalletPanel", () => ({
+  WalletPanel: () => <div data-testid="wallet-panel">WalletPanel</div>,
+}));
+
 import { MapRail } from "@/components/MapRail";
 
 const base = {
