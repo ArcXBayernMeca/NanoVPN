@@ -80,7 +80,7 @@ export function AgentFeed({ runId }: { runId: string }) {
   const payments = events.filter((e) => e.kind === "payment");
 
   return (
-    <div className="agent-grid">
+    <div className="agent-grid" data-rise>
       <section className="agent-reasoning">
         {answer && (
           <div className="agent-answer">
@@ -89,7 +89,7 @@ export function AgentFeed({ runId }: { runId: string }) {
           </div>
         )}
         <h2>Reasoning</h2>
-        {reasoning.length === 0 ? <p className="muted">Waiting for the agent to think…</p> : (
+        {reasoning.length === 0 ? <div className="feed-empty"><p className="muted">The agent's thinking will stream here as it works.</p></div> : (
           <ul>{reasoning.map((e) => (
             <li key={e.id} data-kind={e.kind}>
               <span className="agent-kind">{e.kind}</span>
@@ -100,7 +100,7 @@ export function AgentFeed({ runId }: { runId: string }) {
       </section>
       <section className="agent-payments">
         <h2>Payments</h2>
-        {payments.length === 0 ? <p className="muted">No payments yet.</p> : (
+        {payments.length === 0 ? <p className="muted feed-empty__line">No payments yet — each fetch settles here in USDC.</p> : (
           <ul>{payments.map((e) => (
             <li key={e.id}>
               <div className="agent-pay__row">

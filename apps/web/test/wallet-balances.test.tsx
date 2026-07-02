@@ -14,10 +14,11 @@ describe("WalletBalances", () => {
     expect(screen.getByText(/\$4\.00/)).toBeTruthy();   // wallet 4_000_000 µUSD
     expect(screen.getByText(/\$0\.50/)).toBeTruthy();   // spending 500_000 µUSD
   });
-  it("falls back to — and syncing… on nulls", () => {
+  it("falls back to — and a syncing skeleton on nulls", () => {
     mockState = { ...mockState, walletMicroUsd: null, gatewayMicroUsd: null };
-    render(<WalletBalances />);
+    const { container } = render(<WalletBalances />);
     expect(screen.getByText("—")).toBeTruthy();
-    expect(screen.getByText(/syncing/i)).toBeTruthy();
+    expect(screen.getByText(/syncing/i)).toBeTruthy();          // sr-only text stays for a11y + tests
+    expect(container.querySelector(".skeleton")).toBeTruthy();  // visual shimmer present
   });
 });
