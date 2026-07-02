@@ -49,11 +49,13 @@ export function MapRail(props: {
       </section>
       {signedIn && (
         <section className="maprail__sec">
+          <span className="eyebrow">Wallet</span>
           <WalletPanel />
         </section>
       )}
       {session && node && (
         <section className="maprail__sec">
+          <span className="eyebrow">Session</span>
           <FetchPanel node={node} streaming={props.streaming} intensity={props.intensity}
             onToggleStream={props.onToggleStream} onIntensity={props.onIntensity} />
           <button className="btn btn--ghost" style={{ marginTop: 10 }} onClick={props.onDisconnect}>Disconnect</button>
