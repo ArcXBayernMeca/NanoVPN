@@ -27,6 +27,7 @@ export default function LandingPage() {
         <button className="btn btn--primary landing__cta" onClick={start} disabled={busy}>
           {busy ? "Locating…" : "Start using"}
         </button>
+        <a className="landing__secondary" href="/use-with-agent">or use with your AI agent →</a>
       </section>
     </main>
   );
