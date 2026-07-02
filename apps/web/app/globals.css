@@ -220,13 +220,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 /* ---------- agent observation panel ---------- */
-.agent-page {
-  max-width: 1200px; margin: 0 auto; padding: 32px 24px;
-}
-.agent-page h1 {
-  font-family: var(--font-display); font-weight: 700; font-size: 22px;
-  letter-spacing: -0.02em; color: var(--ink); margin: 0 0 24px;
-}
+.agent-page { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+.agent-page h1 { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 24px; }
 
 .agent-run {
   background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
@@ -458,8 +453,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .copy-btn { font-size: 12px; padding: 6px 12px; }
 
 /* ---------- use-with-agent onboarding page (layout A — centered quickstart) ---------- */
-.onb { max-width: 720px; margin: 0 auto; padding: 48px 24px; }
-.onb h1 { font-family: var(--font-display); font-weight: 700; font-size: 26px; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 10px; }
+.onb { max-width: 720px; margin: 0 auto; padding: 40px 24px 64px; }
+.onb h1 { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 10px; }
 .onb__lede { color: var(--muted); font-size: 15px; line-height: 1.55; margin: 0 0 24px; max-width: 58ch; }
 .onb__flow {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
