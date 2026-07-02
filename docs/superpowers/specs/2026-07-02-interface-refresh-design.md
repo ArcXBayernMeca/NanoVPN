@@ -43,6 +43,13 @@ and there's little intentional depth or micro-motion. We want a more professiona
 5. **Class names the tests query are preserved** (e.g. `.streampanel__amt`, `.awallet__amt`,
    `.savings`, `.walletbalances__row`, button labels "Fund"/"Run agent", the mocked
    component names). Structural test contracts stay green.
+6. **Untrusted content stays escaped (XSS).** `AgentFeed` renders agent- and egress-derived
+   content (answer markdown, reasoning, `tool_call` name+input, error messages, `egressIp`,
+   status) — all attacker-influenceable. It is currently safe by construction: React
+   children only, **no `dangerouslySetInnerHTML`**, no markdown→HTML library. The restyles
+   MUST preserve this — no `dangerouslySetInnerHTML`, no `innerHTML` with dynamic values, no
+   new markdown/sanitizer dependency. Code-block chrome (Section 4) renders trusted
+   constants but must likewise stay escaped React children.
 
 ---
 
@@ -178,6 +185,24 @@ Keep the animated backdrop + entrance animation.
 - **Focus:** every interactive element reachable + visibly focused via `:focus-visible`.
 - **Contrast:** re-check `--muted`/green-on-tint combinations at text sizes for AA.
 - **No new failure modes:** purely presentational; data/loading/error *logic* unchanged.
+
+## Security audit (2026-07-02)
+
+Audited against the project hard constraints (CLAUDE.md) and a frontend-security lens,
+grounded in the actual code (`AgentFeed.tsx`, `WorldMap.tsx`, the onboarding constants).
+**Result: no new security surface** — the refresh is CSS-first + presentational JSX.
+
+- **XSS / untrusted content — the only real surface, currently safe.** `AgentFeed` renders
+  attacker-influenceable agent/egress output via React children only (auto-escaped); there
+  is **no `dangerouslySetInnerHTML`** and no markdown→HTML library. The two `innerHTML` uses
+  in `WorldMap` are static literal pin markup. Enforced going forward by principle 6.
+- **Secrets:** none touched — no env vars, keys, or logging. `NavLinks` uses `usePathname()`
+  (route path only).
+- **Circle / USDC / Gateway:** no surface — no payment or on-chain logic changes; USDC stays
+  display-only via existing `formatUsd` (6-dec). No EIP-712 / decimals / addresses / chain
+  config touched, so `use-usdc` / `use-gateway` security rules are not engaged.
+- **Supply chain:** no dependencies added (Tailwind stays unused; markdown stays hand-rolled).
+- **Testnet-only:** no network/chain config changes.
 
 ## Testing & verification
 
