@@ -218,6 +218,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .tape__row, .agent-reasoning li, .agent-payments li { animation: none; }
   [data-rise] > *, [data-rise] > *:nth-child(n) { animation: none; }
   .skeleton { animation: none; }
+  .node-card:hover, .onb__sec:hover, .btn:active:not(:disabled) { transform: none; }
   * { scroll-behavior: auto; }
 }
 
@@ -473,9 +474,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .onb__sec:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .onb__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .onb__code { font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; background: var(--canvas); border: 1px solid var(--line); border-radius: 10px; padding: 14px; color: var(--ink); margin: 10px 0 0; }
-.onb__facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-mono); font-size: 12.5px; }
-.onb__facts li { display: flex; gap: 12px; align-items: baseline; }
-.onb__facts b { width: 84px; color: var(--muted); font-weight: 500; flex-shrink: 0; }
 
 /* ---------- map rail dark text overrides ---------- */
 /* The map rail floats over the dark map — force readable light text for the
@@ -601,7 +599,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 /* skeleton shimmer (balances still loading) */
 .skeleton { display: inline-block; width: 54px; height: 13px; border-radius: 5px; vertical-align: middle;
-  background: linear-gradient(90deg, var(--line) 25%, #f1f3ee 37%, var(--line) 63%);
+  background: linear-gradient(90deg, var(--line) 25%, var(--canvas) 37%, var(--line) 63%);
   background-size: 320px 100%; animation: shimmer 1.3s ease-in-out infinite; }
 .skeleton--lg { width: 92px; height: 22px; }
 .feed-empty { padding: 8px 0 2px; }
