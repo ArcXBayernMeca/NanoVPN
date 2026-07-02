@@ -605,3 +605,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .feed-empty { padding: 8px 0 2px; }
 .feed-empty .muted { margin: 0; }
 .feed-empty__line { margin-top: 0; }
+
+/* numbered step cards */
+.onb__step { display: flex; gap: 16px; align-items: flex-start; }
+.onb__num { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--green); background: var(--green-tint); border: 1px solid var(--green-line); }
+.onb__stepbody { flex: 1; min-width: 0; }
+/* code block chrome: label chip + inset body */
+.onb__codewrap { position: relative; margin-top: 10px; }
+.onb__codetag { position: absolute; top: 8px; right: 10px; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .1em;
+  color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 2px 7px; }
+.onb__codewrap .onb__code { margin: 0; padding: 16px; padding-right: 64px; border-radius: var(--r-md); }
+/* endpoint spec table */
+.onb__spec { width: 100%; border-collapse: collapse; margin-top: 10px; font-family: var(--font-mono); font-size: 12.5px; }
+.onb__spec th { text-align: left; font-weight: 500; color: var(--muted); padding: 9px 12px 9px 0; width: 96px; vertical-align: top; border-top: 1px solid var(--line); }
+.onb__spec td { padding: 9px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.onb__spec tr:first-child th, .onb__spec tr:first-child td { border-top: none; }
+.onb__spec code { color: var(--ink); }
