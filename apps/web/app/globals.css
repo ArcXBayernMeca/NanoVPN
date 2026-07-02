@@ -108,14 +108,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* ---------- buttons ---------- */
 .btn {
   font-family: var(--font-body); font-size: 14px; font-weight: 600;
-  border: 1px solid transparent; border-radius: 11px; padding: 12px 15px;
-  cursor: pointer; width: 100%; transition: filter .12s ease, background .12s ease, border-color .12s ease;
+  border: 1px solid transparent; border-radius: var(--r-md); padding: 12px 15px;
+  cursor: pointer; width: 100%;
+  transition: filter var(--dur-1) var(--ease), background var(--dur-1) var(--ease),
+              border-color var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease),
+              transform var(--dur-1) var(--ease);
 }
-.btn--primary { background: var(--green); color: #fff; }
-.btn--primary:hover:not(:disabled) { filter: brightness(.95); }
+.btn:active:not(:disabled) { transform: scale(.985); }
+.btn--primary {
+  background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0) 42%), var(--green);
+  color: #fff; box-shadow: var(--shadow-sm);
+}
+.btn--primary:hover:not(:disabled) { filter: brightness(.97); box-shadow: var(--shadow-md); }
 .btn--ghost { background: var(--panel); color: var(--ink); border-color: var(--line); }
 .btn--ghost:hover:not(:disabled) { border-color: var(--green-line); background: var(--green-tint); }
-.btn:disabled { background: #f1f2ee; color: #aeb4af; border-color: var(--line); cursor: not-allowed; }
+.btn:disabled { background: #f1f2ee; color: #aeb4af; border-color: var(--line); cursor: not-allowed; box-shadow: none; }
 .btn--row { display: flex; gap: 10px; }
 .btn--row .btn { width: auto; flex: 1; }
 
@@ -124,8 +131,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .node-card {
   margin-top: 12px; display: flex; align-items: center; gap: 12px;
   border: 1px solid var(--green-line); background: var(--green-tint);
-  border-radius: 13px; padding: 13px 14px;
+  border-radius: 13px; padding: 13px 14px; box-shadow: var(--shadow-sm); transition: box-shadow var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
 }
+.node-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .node-card__pin { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px #fff, 0 0 0 5px var(--green-line); }
 .node-card__name { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
 .node-card__meta { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
@@ -222,7 +230,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 .agent-run {
   background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-  padding: 18px 22px; margin-bottom: 14px;
+  padding: 18px 22px; margin-bottom: 14px; box-shadow: var(--shadow-sm);
 }
 .agent-run__goal {
   font-family: var(--font-display); font-size: 16px; font-weight: 600;
@@ -323,7 +331,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .agent-rail {
   background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
   padding: 18px 18px; display: flex; flex-direction: column; gap: 10px;
-  position: sticky; top: 18px;
+  position: sticky; top: 18px; box-shadow: var(--shadow-sm);
 }
 
 .agent-rail__globe { height: 220px; position: relative; border-radius: 10px; overflow: hidden; }
@@ -355,7 +363,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* ---------- agent wallet card (light) ---------- */
 .awallet {
   background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-  padding: 16px 18px; margin: 0 0 20px; display: flex; flex-direction: column; gap: 14px;
+  padding: 16px 18px; margin: 0 0 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow-sm);
 }
 .awallet__grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
@@ -419,7 +427,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    solid panel instead so it stays readable without per-frame blur cost. */
 .maprail { position: absolute; top: 18px; right: 18px; width: 300px; max-height: calc(100% - 36px); overflow: auto;
   background: rgba(8,14,11,.88);
-  border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 16px; color: var(--ink, #e7efe9); }
+  border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 16px; color: var(--ink, #e7efe9); box-shadow: var(--shadow-dark); }
 .maprail__sec + .maprail__sec { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.1); }
 .copilot-btn { width: 100%; } .copilot-msg { color: #7ff0aa; }
 
@@ -430,7 +438,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .seg__btn[data-on="true"] { background: var(--green-bright); color: #04130c; font-weight: 600; }
 
 /* ---------- agent run form ---------- */
-.run-form { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px; }
+.run-form { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-sm); }
 .run-form__goal { width: 100%; font-family: var(--font-body); font-size: 14px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; }
 .run-form__row { display: flex; align-items: flex-end; gap: 12px; }
 .run-form__row select, .run-form__budget { font-family: var(--font-mono); font-size: 12.5px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; }
@@ -442,7 +450,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .dev-page { max-width: 880px; margin: 0 auto; padding: 32px 24px; }
 .dev-page h1 { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 8px; }
 .dev-lede { color: var(--muted); font-size: 15px; line-height: 1.55; margin: 0 0 24px; max-width: 60ch; }
-.dev-sec { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; }
+.dev-sec { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
 .dev-sec__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .dev-code { font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; background: var(--canvas); border: 1px solid var(--line); border-radius: 10px; padding: 14px; color: var(--ink); margin: 0; }
 .dev-facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-mono); font-size: 12.5px; }
@@ -461,7 +469,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .onb__flow span { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; color: var(--ink); }
 .onb__flow i { color: var(--muted); font-style: normal; }
-.onb__sec { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; }
+.onb__sec { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; box-shadow: var(--shadow-sm); transition: box-shadow var(--dur-2) var(--ease), transform var(--dur-2) var(--ease); }
+.onb__sec:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .onb__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .onb__code { font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; background: var(--canvas); border: 1px solid var(--line); border-radius: 10px; padding: 14px; color: var(--ink); margin: 10px 0 0; }
 .onb__facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-mono); font-size: 12.5px; }
@@ -523,7 +532,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .maprail .tape__anchor { color: var(--green-bright); }
 
 /* ---------- agent answer card ---------- */
-.agent-answer { border: 1px solid var(--green-line); background: var(--green-tint); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+.agent-answer { border: 1px solid var(--green-line); background: var(--green-tint); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
 .agent-answer__body { margin-top: 8px; font-size: 14.5px; line-height: 1.6; color: var(--ink); }
 .agent-answer__body > :first-child { margin-top: 0; }
 .agent-answer__body p { margin: 10px 0 0; }
