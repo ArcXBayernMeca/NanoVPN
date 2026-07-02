@@ -436,12 +436,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .seg__btn[data-on="true"] { background: var(--green-bright); color: #04130c; font-weight: 600; }
 
 /* ---------- agent run form ---------- */
-.run-form { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-sm); }
-.run-form__goal { width: 100%; font-family: var(--font-body); font-size: 14px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; }
-.run-form__row { display: flex; align-items: flex-end; gap: 12px; }
-.run-form__row select, .run-form__budget { font-family: var(--font-mono); font-size: 12.5px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; }
-.run-form__budget { width: 92px; }
-.run-form__field { display: flex; flex-direction: column; gap: 4px; }
+.run-form { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 18px 20px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow-sm); }
+.run-form__goal { width: 100%; font-family: var(--font-body); font-size: 14.5px; padding: 11px 13px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--canvas); transition: border-color var(--dur-1) var(--ease); }
+.run-form__goal:focus { outline: none; border-color: var(--green); background: var(--panel); }
+.run-form__row { display: flex; align-items: flex-end; gap: 14px; }
+.run-form__row .btn { width: auto; margin-left: auto; min-width: 148px; }
+.run-form__row select, .run-form__budget { font-family: var(--font-mono); font-size: 12.5px; padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--canvas); }
+.run-form__budget { width: 100px; }
+.run-form__field { display: flex; flex-direction: column; gap: 5px; }
 .run-form__field span { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 
 /* ---------- developers page (legacy classes — kept for safety) ---------- */
